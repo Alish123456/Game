@@ -932,22 +932,22 @@ The dungeon claims another victim.""",
                 self.current_node = "start"
                 continue
             
-            # Handle custom AI nodes
-            if self.current_node == "CUSTOM_AI":
-                prev_node = list(self.state.visited_nodes)[-2] if len(self.state.visited_nodes) > 1 else "start"
-                self.current_node = self.handle_custom_action(prev_node)
-                continue
-            
-            if self.current_node == "COMBAT_AI":
-                prev_node = list(self.state.visited_nodes)[-2] if len(self.state.visited_nodes) > 1 else "start"
-                self.current_node = self.handle_custom_action(prev_node)
-                continue
-            
             # Get current node
             node = self.nodes.get(self.current_node)
             if not node:
                 print(f"Error: Node '{self.current_node}' not found!")
                 break
+            
+            # Handle custom AI nodes (check if node is a string marker)
+            if isinstance(node, str) and node == "CUSTOM_AI":
+                prev_node = list(self.state.visited_nodes)[-2] if len(self.state.visited_nodes) > 1 else "start"
+                self.current_node = self.handle_custom_action(prev_node)
+                continue
+            
+            if isinstance(node, str) and node == "COMBAT_AI":
+                prev_node = list(self.state.visited_nodes)[-2] if len(self.state.visited_nodes) > 1 else "start"
+                self.current_node = self.handle_custom_action(prev_node)
+                continue
             
             # Show status
             self.show_status()
