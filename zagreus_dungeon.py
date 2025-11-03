@@ -272,6 +272,41 @@ The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
         )
         
+        self.nodes["take_chain"] = StoryNode(
+            "take_chain",
+            """You grab the chain and wrap it around your hand, avoiding the corpse.
+The metal is cold and heavy. It could be used as a weapon.
+The water continues to rise around you.""",
+            [
+                {"text": "Search for an exit", "next": "search_exit_urgent"},
+                {"text": "Dive underwater", "next": "underwater_passage"}
+            ]
+        )
+        
+        self.nodes["recoil_corpse"] = StoryNode(
+            "recoil_corpse",
+            """You recoil from the corpse in horror. The stench, the decay—it's too much.
+You back away, but in your panic, you slip on the slick floor.
+Your head goes underwater. You come up sputtering and gasping.
+The water is rising fast now. You need to act!""",
+            [
+                {"text": "Overcome your fear and search the corpse", "next": "search_corpse"},
+                {"text": "Search for an exit immediately", "next": "search_exit_urgent"},
+                {"text": "Dive to find another way", "next": "underwater_passage"}
+            ]
+        )
+        
+        self.nodes["chain_weapon"] = StoryNode(
+            "chain_weapon",
+            """You grab the chain and wrap it around your fist. It's heavy and rusty,
+but it could work as a makeshift weapon. The links are solid.
+You feel slightly more prepared, though still in mortal danger from the rising water.""",
+            [
+                {"text": "Use the chain to search for an exit", "next": "search_exit_urgent"},
+                {"text": "Dive underwater with the chain", "next": "underwater_passage"}
+            ]
+        )
+        
         self.nodes["after_corpse_loot"] = StoryNode(
             "after_corpse_loot",
             """With the tinderbox secure in your pocket, you pocket the coins too.
