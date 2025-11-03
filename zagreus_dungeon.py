@@ -10,6 +10,13 @@ import json
 import os
 from typing import Dict, List, Optional, Tuple, Any
 
+# Game constants
+DARKNESS_FAILURE_THRESHOLD = 30
+FIND_CHANCE_WITH_LIGHT = 40
+FIND_CHANCE_WITHOUT_LIGHT = 10
+MAX_INPUT_LENGTH = 500
+MAX_INPUT_RETRIES = 5
+
 # Game state class
 class GameState:
     def __init__(self):
@@ -53,6 +60,7 @@ class GameState:
         
         # Discovered paths
         self.visited_nodes = set()
+        self.node_history = []  # Ordered list for tracking previous nodes
 
 # AI Dungeon Master for dynamic responses
 class DungeonMaster:
@@ -141,11 +149,11 @@ class DungeonMaster:
         
         # Light-dependent actions
         if "search" in action or "look" in action or "examine" in action:
-            if not self.state.equipped["light"] and random.randint(1, 100) > 30:
+            if not self.state.equipped["light"] and random.randint(1, 100) > DARKNESS_FAILURE_THRESHOLD:
                 return (False, "It's too dark to see anything clearly. You fumble around blindly.", effects)
             
             if "search" in action:
-                find_chance = 40 if self.state.equipped["light"] else 10
+                find_chance = FIND_CHANCE_WITH_LIGHT if self.state.equipped["light"] else FIND_CHANCE_WITHOUT_LIGHT
                 if random.randint(1, 100) < find_chance:
                     effects["found_item"] = True
                     return (True, "You find something useful in the darkness!", effects)
@@ -832,6 +840,15 @@ The dungeon claims another victim.""",
         print("\n[Custom Action Mode - Describe what you want to do]")
         action = input("> ").strip()
         
+        # Validate and sanitize input
+        if len(action) > MAX_INPUT_LENGTH:
+            action = action[:MAX_INPUT_LENGTH]
+            print(f"[Input truncated to {MAX_INPUT_LENGTH} characters]")
+        
+        if not action:
+            print("You do nothing and waste time...")
+            return self.find_next_node_from_ai(context_node, False, "")
+        
         # Get context
         context = {
             "location": self.state.location,
@@ -890,6 +907,7 @@ The dungeon claims another victim.""",
         """Process any automatic effects when entering a node"""
         self.state.turn_count += 1
         self.state.visited_nodes.add(node_id)
+        self.state.node_history.append(node_id)  # Track order
         
         # Hunger increases over time
         if self.state.turn_count % 5 == 0:
@@ -945,16 +963,18 @@ The dungeon claims another victim.""",
             node = self.nodes.get(self.current_node)
             if not node:
                 print(f"Error: Node '{self.current_node}' not found!")
+                print(f"Available nodes: {len(self.nodes)} total")
+                print("The game encountered an error. Please report this issue.")
                 break
             
             # Handle custom AI nodes (check if node is a string marker)
             if isinstance(node, str) and node == "CUSTOM_AI":
-                prev_node = list(self.state.visited_nodes)[-2] if len(self.state.visited_nodes) > 1 else "start"
+                prev_node = self.state.node_history[-2] if len(self.state.node_history) > 1 else "start"
                 self.current_node = self.handle_custom_action(prev_node)
                 continue
             
             if isinstance(node, str) and node == "COMBAT_AI":
-                prev_node = list(self.state.visited_nodes)[-2] if len(self.state.visited_nodes) > 1 else "start"
+                prev_node = self.state.node_history[-2] if len(self.state.node_history) > 1 else "start"
                 self.current_node = self.handle_custom_action(prev_node)
                 continue
             
@@ -972,7 +992,8 @@ The dungeon claims another victim.""",
                 print(f"{i}. {choice['text']}")
             
             # Get player input
-            while True:
+            retry_count = 0
+            while retry_count < MAX_INPUT_RETRIES:
                 try:
                     choice_input = input("\n> ").strip()
                     choice_num = int(choice_input)
@@ -982,11 +1003,17 @@ The dungeon claims another victim.""",
                         break
                     else:
                         print(f"Please enter a number between 1 and {len(node.choices)}")
+                        retry_count += 1
                 except ValueError:
                     print("Please enter a valid number")
+                    retry_count += 1
                 except KeyboardInterrupt:
                     print("\n\nGame interrupted. Thanks for playing!")
                     return
+            
+            if retry_count >= MAX_INPUT_RETRIES:
+                print("\nToo many invalid inputs. Game ended.")
+                return
 
 def main():
     """Entry point"""
