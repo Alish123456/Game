@@ -261,6 +261,17 @@ Your vision blurs as foam forms at your lips...""",
             ]
         )
         
+        self.nodes["tinderbox_only"] = StoryNode(
+            "tinderbox_only",
+            """You take only the tinderbox, leaving the questionable food and coins.
+The tinderbox might save your life if you can dry it and find fuel.
+The water continues to rise. You need to move now.""",
+            [
+                {"text": "Search for an exit urgently", "next": "search_exit_urgent"},
+                {"text": "Dive underwater to find a way out", "next": "underwater_passage"}
+            ]
+        )
+        
         self.nodes["death_poison"] = StoryNode(
             "death_poison",
             """You die from fungal poisoning, your body joining the other corpses in the flooded cell.
