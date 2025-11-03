@@ -277,6 +277,15 @@ The water continues to rise. It's now at your shoulders.""",
             ]
         )
         
+        self.nodes["search_exit_urgent"] = StoryNode(
+            "search_exit_urgent",
+            """You search frantically along the walls. The water is at your neck now!
+Your hands find something—a drainage grate near the ceiling!""",
+            [
+                {"text": "Try to open the grate", "next": "find_drainage_grate"}
+            ]
+        )
+        
         self.nodes["light_tinderbox_wet"] = StoryNode(
             "light_tinderbox_wet",
             """You try to strike the flint, but everything is soaked.

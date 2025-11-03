@@ -25,12 +25,22 @@ You are Zagreus, betrayed and thrown into a flooded dungeon cell to drown. But y
 
 ## How to Play
 
-### Linux/Mac:
+### Quick Start
+
+**Linux/Mac:**
+```bash
+./play.sh
+```
+or
 ```bash
 python3 zagreus_dungeon.py
 ```
 
-### Windows:
+**Windows:**
+```bash
+play.bat
+```
+or
 ```bash
 python zagreus_dungeon.py
 ```
