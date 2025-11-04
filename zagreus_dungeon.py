@@ -493,8 +493,7 @@ right slopes downward.""",
                 {"text": "Take the upward path", "next": "upward_path"},
                 {"text": "Continue straight", "next": "straight_path"},
                 {"text": "Descend the right path", "next": "downward_path"},
-                {"text": "Search this area first", "next": "search_junction"},
-                {"text": "Custom action", "next": "custom_junction"}
+                {"text": "Search this area first", "next": "search_junction"}
             ]
         )
         
@@ -507,8 +506,7 @@ Health recovered slightly. Stamina recovered.""",
             [
                 {"text": "Search the area now", "next": "search_victim_body"},
                 {"text": "Continue onward", "next": "past_ghoul_quick"},
-                {"text": "Tend to your new wounds", "next": "tend_combat_wounds"},
-                {"text": "Custom action", "next": "custom_rest_combat"}
+                {"text": "Tend to your new wounds", "next": "tend_combat_wounds"}
             ]
         )
         
@@ -519,8 +517,7 @@ The creature hisses but doesn't pursue immediately. You've bought yourself time.
             [
                 {"text": "Keep running", "next": "run_from_ghoul"},
                 {"text": "Find a defensible position", "next": "find_defensive_spot"},
-                {"text": "Hide and ambush if it follows", "next": "ambush_setup"},
-                {"text": "Custom action", "next": "custom_past_ghoul"}
+                {"text": "Hide and ambush if it follows", "next": "ambush_setup"}
             ]
         )
         
@@ -532,8 +529,7 @@ respecting the fire. You're in a stalemate. You reach a junction—you can go le
                 {"text": "Take the left path quickly", "next": "left_from_ghoul"},
                 {"text": "Take the right path", "next": "right_from_ghoul"},
                 {"text": "Throw torch at it and run", "next": "torch_throw_run"},
-                {"text": "Stand ground and fight", "next": "fight_ghoul_torch"},
-                {"text": "Custom action", "next": "custom_ghoul_standoff"}
+                {"text": "Stand ground and fight", "next": "fight_ghoul_torch"}
             ]
         )
         
@@ -547,8 +543,7 @@ doesn't follow down here. Something must scare even the ghouls about this place.
             [
                 {"text": "Use your torch if you still have it", "next": "light_lower_level"},
                 {"text": "Feel your way in darkness", "next": "lower_level_dark"},
-                {"text": "Stay still and listen", "next": "listen_lower_level"},
-                {"text": "Custom action", "next": "custom_lower_level"}
+                {"text": "Stay still and listen", "next": "listen_lower_level"}
             ]
         )
         
@@ -563,8 +558,7 @@ and another door on the far side.""",
                 {"text": "Take armor and weapons", "next": "equip_guard_gear"},
                 {"text": "Go through the far door quickly", "next": "far_door_exit"},
                 {"text": "Search the room thoroughly", "next": "search_guardroom"},
-                {"text": "Barricade the door better", "next": "barricade_door"},
-                {"text": "Custom action", "next": "custom_guardroom_escape"}
+                {"text": "Barricade the door better", "next": "barricade_door"}
             ]
         )
         
@@ -578,8 +572,7 @@ from rooms on either side through the thin walls.""",
             [
                 {"text": "Follow the passage", "next": "between_walls_passage"},
                 {"text": "Listen through the walls", "next": "listen_through_walls"},
-                {"text": "Look for a way into one of the rooms", "next": "find_wall_opening"},
-                {"text": "Custom action", "next": "custom_crack_passage"}
+                {"text": "Look for a way into one of the rooms", "next": "find_wall_opening"}
             ]
         )
         
@@ -592,8 +585,7 @@ You have no choice but to fight for your life!
             [
                 {"text": "Fight with everything you have", "next": "desperate_ghoul_fight"},
                 {"text": "Try a desperate gambit", "next": "desperate_gambit"},
-                {"text": "Surrender to death", "next": "death_combat"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Surrender to death", "next": "death_combat"}
             ]
         )
         
@@ -606,8 +598,7 @@ It stops right in front of your hiding spot...""",
             [
                 {"text": "Stay perfectly still", "next": "hide_success_ghoul"},
                 {"text": "Leap out and attack by surprise", "next": "surprise_attack_ghoul"},
-                {"text": "Run before it finds you", "next": "run_from_hiding"},
-                {"text": "Custom action", "next": "custom_hiding"}
+                {"text": "Run before it finds you", "next": "run_from_hiding"}
             ]
         )
         
@@ -618,8 +609,7 @@ The ghoul circles warily. This will be a tough fight.""",
             [
                 {"text": "Attack aggressively", "next": "fight_ghoul_torch"},
                 {"text": "Fight defensively", "next": "defensive_ghoul_fight"},
-                {"text": "Try to lead it into a trap", "next": "trap_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Try to lead it into a trap", "next": "trap_ghoul"}
             ]
         )
         
@@ -629,8 +619,7 @@ The ghoul circles warily. This will be a tough fight.""",
 face! It shrieks and falls backward. One more good hit should finish it!""",
             [
                 {"text": "Finish it off", "next": "finish_ghoul"},
-                {"text": "Let it flee and escape yourself", "next": "let_ghoul_flee"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Let it flee and escape yourself", "next": "let_ghoul_flee"}
             ]
         )
         
@@ -643,8 +632,7 @@ Victory, but at a cost. Leg injured. Movement impaired.""",
             [
                 {"text": "Search the area", "next": "search_victim_body"},
                 {"text": "Tend to your leg", "next": "tend_leg_injury"},
-                {"text": "Move on despite the pain", "next": "past_ghoul_quick"},
-                {"text": "Custom action", "next": "custom_injured_victory"}
+                {"text": "Move on despite the pain", "next": "past_ghoul_quick"}
             ]
         )
         
@@ -655,8 +643,7 @@ You're past it! You run down the corridor, putting distance between you and it."
             [
                 {"text": "Keep running", "next": "run_from_ghoul"},
                 {"text": "Stop and catch your breath", "next": "catch_breath"},
-                {"text": "Find a place to hide", "next": "hide_from_ghoul"},
-                {"text": "Custom action", "next": "custom_escape_wounded"}
+                {"text": "Find a place to hide", "next": "hide_from_ghoul"}
             ]
         )
         
@@ -669,8 +656,7 @@ or deadly poisonous. You also spot some beetles crawling on the wall.""",
                 {"text": "Eat the mushrooms carefully", "next": "eat_mushrooms"},
                 {"text": "Eat the beetles—protein is protein", "next": "eat_beetles"},
                 {"text": "Search more before eating anything", "next": "search_more_food"},
-                {"text": "Resist and move on hungry", "next": "resist_eating"},
-                {"text": "Custom action", "next": "custom_food_search"}
+                {"text": "Resist and move on hungry", "next": "resist_eating"}
             ]
         )
         
@@ -682,8 +668,7 @@ Your sanity is fragile. The dungeon changes people.""",
             [
                 {"text": "Continue forward", "next": "past_ghoul_quick"},
                 {"text": "Examine your conscience", "next": "moral_reflection"},
-                {"text": "Search the victim's body anyway", "next": "search_victim_body"},
-                {"text": "Custom action", "next": "custom_dark_choice"}
+                {"text": "Search the victim's body anyway", "next": "search_victim_body"}
             ]
         )
         
@@ -696,8 +681,7 @@ You've held onto your humanity. For now.""",
             [
                 {"text": "Search for real food elsewhere", "next": "search_for_food"},
                 {"text": "Continue without eating", "next": "past_ghoul_quick"},
-                {"text": "Search the victim's body for supplies", "next": "search_victim_body"},
-                {"text": "Custom action", "next": "custom_throw_meat"}
+                {"text": "Search the victim's body for supplies", "next": "search_victim_body"}
             ]
         )
         
@@ -711,8 +695,7 @@ but you're still you.""",
             [
                 {"text": "Continue with renewed purpose", "next": "past_ghoul_quick"},
                 {"text": "Rest a bit longer", "next": "rest_longer"},
-                {"text": "Search the area now", "next": "search_victim_body"},
-                {"text": "Custom action", "next": "custom_meditate"}
+                {"text": "Search the area now", "next": "search_victim_body"}
             ]
         )
         
@@ -724,8 +707,7 @@ The bleeding has stopped. You feel significantly better.
 Health restored by 15! Infection risk reduced!""",
             [
                 {"text": "Continue onward refreshed", "next": "equip_dagger_continue"},
-                {"text": "Take stock of your situation", "next": "assess_situation"},
-                {"text": "Custom action", "next": "custom_herbal_rest"}
+                {"text": "Take stock of your situation", "next": "assess_situation"}
             ]
         )
         
@@ -735,8 +717,7 @@ Health restored by 15! Infection risk reduced!""",
 
 Herbs added to inventory.""",
             [
-                {"text": "Continue onward", "next": "equip_dagger_continue"},
-                {"text": "Custom action", "next": "custom_save_herbs"}
+                {"text": "Continue onward", "next": "equip_dagger_continue"}
             ]
         )
         
@@ -748,8 +729,7 @@ You'll need to find more water eventually.
 Stamina fully restored! Thirst quenched!""",
             [
                 {"text": "Continue onward", "next": "equip_dagger_continue"},
-                {"text": "Refill waterskin if possible", "next": "refill_water"},
-                {"text": "Custom action", "next": "custom_drink_all"}
+                {"text": "Refill waterskin if possible", "next": "refill_water"}
             ]
         )
         
@@ -761,8 +741,7 @@ The water is precious, but preventing infection is worth it.
 Infection risk reduced! Water partially used.""",
             [
                 {"text": "Continue onward", "next": "equip_dagger_continue"},
-                {"text": "Bandage it as well", "next": "bandage_after_clean"},
-                {"text": "Custom action", "next": "custom_clean_wound"}
+                {"text": "Bandage it as well", "next": "bandage_after_clean"}
             ]
         )
         
@@ -774,8 +753,7 @@ and the trophy room might save your life.
 Note added to inventory.""",
             [
                 {"text": "Continue onward", "next": "equip_dagger_continue"},
-                {"text": "Read it again more carefully", "next": "reread_note"},
-                {"text": "Custom action", "next": "custom_keep_note"}
+                {"text": "Read it again more carefully", "next": "reread_note"}
             ]
         )
         
@@ -788,8 +766,7 @@ The stairs remain silent.""",
             [
                 {"text": "Wait to see who's coming", "next": "wait_for_footsteps"},
                 {"text": "Take the foul passage while hidden", "next": "sewer_passage"},
-                {"text": "Descend the stairs quietly", "next": "descend_stairs"},
-                {"text": "Custom action", "next": "custom_hide_observe"}
+                {"text": "Descend the stairs quietly", "next": "descend_stairs"}
             ]
         )
         
@@ -802,8 +779,7 @@ You have the advantage of initiative but he's trained and armored!
             [
                 {"text": "Go for his throat with dagger", "next": "guard_throat_attack"},
                 {"text": "Knock away his spear first", "next": "disarm_guard"},
-                {"text": "Tackle him to the ground", "next": "tackle_guard"},
-                {"text": "Custom action", "next": "custom_guard_combat"}
+                {"text": "Tackle him to the ground", "next": "tackle_guard"}
             ]
         )
         
@@ -818,8 +794,7 @@ Is this a trick? Or genuine mercy?""",
             [
                 {"text": "Go with him peacefully", "next": "follow_guard"},
                 {"text": "Attack when his guard is down", "next": "betray_surrender"},
-                {"text": "Run at the last second", "next": "run_from_escort"},
-                {"text": "Custom action", "next": "custom_surrender"}
+                {"text": "Run at the last second", "next": "run_from_escort"}
             ]
         )
         
@@ -830,8 +805,7 @@ You run back the way you came. You can take the sewer or the stairs!""",
             [
                 {"text": "Take the sewer passage", "next": "sewer_passage"},
                 {"text": "Take the stairs down", "next": "descend_stairs"},
-                {"text": "Turn and fight—running is futile", "next": "stop_and_fight_guard"},
-                {"text": "Custom action", "next": "custom_run_guard"}
+                {"text": "Turn and fight—running is futile", "next": "stop_and_fight_guard"}
             ]
         )
 
@@ -876,8 +850,7 @@ You see genuine fear in his eyes.""",
             [
                 {"text": "Offer to save his family too", "next": "promise_save_family"},
                 {"text": "Tell him his family is likely already dead", "next": "harsh_truth"},
-                {"text": "Back off and find another way", "next": "leave_guard_alone"},
-                {"text": "Custom action", "next": "custom_appeal"}
+                {"text": "Back off and find another way", "next": "leave_guard_alone"}
             ]
         )
         
@@ -889,8 +862,7 @@ in defense, but he's slower now. Blood flows from his side.""",
             [
                 {"text": "Press the attack", "next": "finish_wounded_guard"},
                 {"text": "Demand he surrender", "next": "demand_guard_yield"},
-                {"text": "Run while he's injured", "next": "run_from_wounded_guard"},
-                {"text": "Custom action", "next": "custom_wounded_guard"}
+                {"text": "Run while he's injured", "next": "run_from_wounded_guard"}
             ]
         )
         
@@ -908,8 +880,7 @@ He raises a strange device—it hums with energy.""",
                 {"text": "Attack him immediately", "next": "fight_overseer"},
                 {"text": "Dodge and find cover", "next": "cover_from_overseer"},
                 {"text": "Try to talk him down", "next": "talk_overseer"},
-                {"text": "Look for the key first", "next": "grab_key_quick"},
-                {"text": "Custom action", "next": "custom_overseer_fight"}
+                {"text": "Look for the key first", "next": "grab_key_quick"}
             ]
         )
         
@@ -922,8 +893,7 @@ You could sneak to the key, or attack him from behind.""",
             [
                 {"text": "Sneak to the key", "next": "steal_key_stealth"},
                 {"text": "Attack from behind", "next": "backstab_overseer"},
-                {"text": "Wait for better opportunity", "next": "wait_in_trophy_room"},
-                {"text": "Custom action", "next": "custom_sneak_trophy"}
+                {"text": "Wait for better opportunity", "next": "wait_in_trophy_room"}
             ]
         )
         
@@ -938,8 +908,7 @@ He's completely mad. And dangerous.""",
             [
                 {"text": "Burst in now", "next": "confront_overseer"},
                 {"text": "Sneak in quietly", "next": "sneak_trophy_room"},
-                {"text": "Leave and find another way", "next": "avoid_overseer"},
-                {"text": "Custom action", "next": "custom_listen_overseer"}
+                {"text": "Leave and find another way", "next": "avoid_overseer"}
             ]
         )
         
@@ -960,8 +929,7 @@ It's circling. Hunting. It knows something is here but can't pinpoint you yet.""
                 {"text": "Remain absolutely still", "next": "stay_frozen"},
                 {"text": "Try to move away silently", "next": "silent_retreat"},
                 {"text": "Feel for a weapon on the ground", "next": "feel_for_weapon"},
-                {"text": "Make a sudden loud noise to scare it", "next": "scare_creature"},
-                {"text": "Custom action", "next": "custom_dark_hunt"}
+                {"text": "Make a sudden loud noise to scare it", "next": "scare_creature"}
             ]
         )
         
@@ -976,8 +944,7 @@ The voice is hoarse, pained. Someone else is trapped down here.""",
                 {"text": "Ask who they are", "next": "ask_identity"},
                 {"text": "Ask for help finding a way out", "next": "ask_help_escape"},
                 {"text": "Move toward the voice", "next": "approach_voice"},
-                {"text": "Move away from the voice—might be a trap", "next": "away_from_voice"},
-                {"text": "Custom action", "next": "custom_voice_dark"}
+                {"text": "Move away from the voice—might be a trap", "next": "away_from_voice"}
             ]
         )
         
@@ -991,8 +958,7 @@ The passage continues in darkness. You feel a breeze—air flow from somewhere a
             [
                 {"text": "Follow the breeze carefully", "next": "follow_breeze"},
                 {"text": "Continue feeling along the wall", "next": "continue_in_dark"},
-                {"text": "Rest against the wall briefly", "next": "rest_in_dark"},
-                {"text": "Custom action", "next": "custom_dark_passage"}
+                {"text": "Rest against the wall briefly", "next": "rest_in_dark"}
             ]
         )
         
@@ -1007,8 +973,7 @@ The breathing is right above you. IT'S ON THE CEILING.""",
                 {"text": "Dive away immediately", "next": "dive_from_ceiling"},
                 {"text": "Look up into the darkness", "next": "look_up_ceiling"},
                 {"text": "Run blindly forward", "next": "blind_run"},
-                {"text": "Play dead next to the corpse", "next": "play_dead_ceiling"},
-                {"text": "Custom action", "next": "custom_ceiling_horror"}
+                {"text": "Play dead next to the corpse", "next": "play_dead_ceiling"}
             ]
         )
         
@@ -1023,8 +988,7 @@ The guard's face darkens with rage. "How dare you!" He picks up a rock.
                 {"text": "Dodge underwater", "next": "dodge_rock"},
                 {"text": "Catch the rock", "next": "catch_rock"},
                 {"text": "Take the hit and glare at him", "next": "take_rock_hit"},
-                {"text": "Beg for forgiveness", "next": "apologize_guard"},
-                {"text": "Custom action", "next": "custom_angry_guard"}
+                {"text": "Beg for forgiveness", "next": "apologize_guard"}
             ]
         )
         
@@ -1039,8 +1003,7 @@ But he drops something in his haste—a small metal file for his spear.
 It falls into the water with a splash.""",
             [
                 {"text": "Dive for the metal file", "next": "get_metal_file"},
-                {"text": "Ignore it and search for other exit", "next": "search_exit_urgent"},
-                {"text": "Custom action", "next": "custom_file_drop"}
+                {"text": "Ignore it and search for other exit", "next": "search_exit_urgent"}
             ]
         )
         
@@ -1059,8 +1022,7 @@ You're at an impasse. The water rises to your chin.""",
             [
                 {"text": "Make up a convincing location", "next": "lie_about_gold"},
                 {"text": "Tell him the truth—there is no gold", "next": "admit_no_gold"},
-                {"text": "Describe a trap location", "next": "trap_location"},
-                {"text": "Custom action", "next": "custom_bribe"}
+                {"text": "Describe a trap location", "next": "trap_location"}
             ]
         )
         
@@ -1075,8 +1037,7 @@ Pain shoots through your hand but you don't let go.""",
                 {"text": "Grab his foot and pull him down", "next": "pull_guard_down"},
                 {"text": "Endure and pull yourself up", "next": "endure_and_climb"},
                 {"text": "Let go and drop to avoid being crushed", "next": "drop_from_ledge"},
-                {"text": "Bite his ankle", "next": "bite_guard"},
-                {"text": "Custom action", "next": "custom_ledge_struggle"}
+                {"text": "Bite his ankle", "next": "bite_guard"}
             ]
         )
         
@@ -1089,8 +1050,7 @@ You grapple, rolling across the ground. He's stronger than you expected.""",
                 {"text": "Grab a weapon from the fallen rack", "next": "grab_fallen_weapon"},
                 {"text": "Choke him with your hands", "next": "choke_guard"},
                 {"text": "Headbutt him", "next": "headbutt_guard"},
-                {"text": "Roll away and create distance", "next": "create_distance"},
-                {"text": "Custom action", "next": "custom_guardroom_fight"}
+                {"text": "Roll away and create distance", "next": "create_distance"}
             ]
         )
         
@@ -1105,8 +1065,7 @@ He's trained. You're not. This will be difficult.""",
                 {"text": "Attack first aggressively", "next": "attack_guard_first"},
                 {"text": "Defend and wait for opening", "next": "defend_wait"},
                 {"text": "Throw the sword at him and run", "next": "throw_sword_run"},
-                {"text": "Try to talk him down mid-combat", "next": "talk_during_combat"},
-                {"text": "Custom action", "next": "custom_sword_duel"}
+                {"text": "Try to talk him down mid-combat", "next": "talk_during_combat"}
             ]
         )
         
@@ -1123,8 +1082,7 @@ You might be getting through to him.""",
             [
                 {"text": "Offer to escape together", "next": "ally_guard"},
                 {"text": "Press the emotional advantage", "next": "press_emotion"},
-                {"text": "Attack while he's distracted by grief", "next": "attack_emotional_guard"},
-                {"text": "Custom action", "next": "custom_guard_emotion"}
+                {"text": "Attack while he's distracted by grief", "next": "attack_emotional_guard"}
             ]
         )
         
@@ -1139,8 +1097,7 @@ You need to lose him—the corridor branches ahead.""",
                 {"text": "Take the left corridor", "next": "left_corridor"},
                 {"text": "Take the right corridor", "next": "right_corridor"},
                 {"text": "Find a place to hide", "next": "hide_from_guard"},
-                {"text": "Turn and fight in the corridor", "next": "corridor_fight"},
-                {"text": "Custom action", "next": "custom_corridor_chase"}
+                {"text": "Turn and fight in the corridor", "next": "corridor_fight"}
             ]
         )
 
@@ -1158,8 +1115,7 @@ You need treatment soon or infection will set in. You also need to warm up.""",
                 {"text": "Tear clothing to bandage wounds", "next": "bandage_wounds_cloth"},
                 {"text": "Try to find herbs or medicine ahead", "next": "search_for_medicine"},
                 {"text": "Move quickly to generate warmth", "next": "move_for_warmth"},
-                {"text": "Rest despite the risk—you need recovery", "next": "risk_rest"},
-                {"text": "Custom action", "next": "custom_medical"}
+                {"text": "Rest despite the risk—you need recovery", "next": "risk_rest"}
             ]
         )
         
@@ -1173,8 +1129,7 @@ You see something else too—an albino rat, swimming. It looks at you with
 intelligent eyes, almost like it's judging your choices. Then it disappears.""",
             [
                 {"text": "Close the grate and continue", "next": "drainage_tunnel"},
-                {"text": "Leave it open in case you need to retreat", "next": "grate_open_continue"},
-                {"text": "Custom action", "next": "custom_look_back"}
+                {"text": "Leave it open in case you need to retreat", "next": "grate_open_continue"}
             ]
         )
         
@@ -1190,8 +1145,7 @@ Inventory: Health potion, dried meat
 The water reaches your chest. Time to find the way out!""",
             [
                 {"text": "Search for exit with new confidence", "next": "find_drainage_grate"},
-                {"text": "Eat the dried meat now for energy", "next": "eat_dried_meat_safe"},
-                {"text": "Custom action", "next": "custom_equipped"}
+                {"text": "Eat the dried meat now for energy", "next": "eat_dried_meat_safe"}
             ]
         )
         
@@ -1207,8 +1161,7 @@ Inventory: Dried meat
 The water continues to rise. You need to move now!""",
             [
                 {"text": "Search for exit", "next": "find_drainage_grate"},
-                {"text": "Eat the meat for energy", "next": "eat_dried_meat_safe"},
-                {"text": "Custom action", "next": "custom_knife_only"}
+                {"text": "Eat the meat for energy", "next": "eat_dried_meat_safe"}
             ]
         )
         
@@ -1223,8 +1176,7 @@ Hunger reduced significantly! Stamina restored!
 The water is still rising though. You need to escape!""",
             [
                 {"text": "Search for exit with renewed energy", "next": "find_drainage_grate"},
-                {"text": "Take the rest of the items and go", "next": "bundle_and_exit"},
-                {"text": "Custom action", "next": "custom_after_eating"}
+                {"text": "Take the rest of the items and go", "next": "bundle_and_exit"}
             ]
         )
 
@@ -1236,8 +1188,7 @@ No time to examine everything now—the water is at your shoulders!
 You need to find the drainage grate or underwater passage immediately!""",
             [
                 {"text": "Search frantically for the grate", "next": "find_drainage_grate"},
-                {"text": "Dive underwater for passage", "next": "underwater_passage"},
-                {"text": "Custom action", "next": "custom_bundle_urgent"}
+                {"text": "Dive underwater for passage", "next": "underwater_passage"}
             ]
         )
         
@@ -1251,8 +1202,7 @@ You have mere seconds to act!""",
             [
                 {"text": "Go back for the bundle", "next": "rush_back_bundle"},
                 {"text": "Dive for underwater passage", "next": "dive_last_chance"},
-                {"text": "Scream for help one last time", "next": "final_scream"},
-                {"text": "Custom action", "next": "custom_last_moment"}
+                {"text": "Scream for help one last time", "next": "final_scream"}
             ]
         )
 
@@ -1329,8 +1279,7 @@ The nutrition helps significantly. You feel your strength returning.
 Hunger reduced by 40! Health restored by 10!""",
             [
                 {"text": "Continue searching for exit", "next": "find_drainage_grate"},
-                {"text": "Feel energized to explore more", "next": "bundle_and_exit"},
-                {"text": "Custom action", "next": "custom_after_safe_meat"}
+                {"text": "Feel energized to explore more", "next": "bundle_and_exit"}
             ]
         )
         
@@ -1341,8 +1290,7 @@ You've located the underwater passage but need to commit to swimming through it
 before the cell fills completely.""",
             [
                 {"text": "Take a deep breath and go for it", "next": "underwater_passage"},
-                {"text": "Search for another way", "next": "panic_search"},
-                {"text": "Custom action", "next": "custom_surface"}
+                {"text": "Search for another way", "next": "panic_search"}
             ]
         )
         
@@ -1354,8 +1302,7 @@ Your lungs are already burning. Decision time!""",
             [
                 {"text": "Swim through immediately", "next": "underwater_passage"},
                 {"text": "Surface for one more breath first", "next": "surface_for_air"},
-                {"text": "Give up and find the grate instead", "next": "panic_search"},
-                {"text": "Custom action", "next": "custom_passage_feel"}
+                {"text": "Give up and find the grate instead", "next": "panic_search"}
             ]
         )
         
@@ -1367,8 +1314,7 @@ out of you. Your muscles shake with exhaustion. But you made it. You're out of t
 Stamina recovered partially.""",
             [
                 {"text": "Continue when ready", "next": "drainage_tunnel"},
-                {"text": "Check your wounds while resting", "next": "check_wounds_passage"},
-                {"text": "Custom action", "next": "custom_rest_climb"}
+                {"text": "Check your wounds while resting", "next": "check_wounds_passage"}
             ]
         )
         
@@ -1382,8 +1328,7 @@ There are ancient carvings on the walls—warnings, you think.""",
                 {"text": "Take the left passage", "next": "left_chamber_passage"},
                 {"text": "Take the center passage", "next": "center_chamber_passage"},
                 {"text": "Take the right passage", "next": "right_chamber_passage"},
-                {"text": "Rest here briefly", "next": "rest_chamber"},
-                {"text": "Custom action", "next": "custom_chamber"}
+                {"text": "Rest here briefly", "next": "rest_chamber"}
             ]
         )
         
@@ -1395,8 +1340,7 @@ You made it through the underwater passage. Barely.""",
             [
                 {"text": "Assess your surroundings", "next": "assess_new_chamber"},
                 {"text": "Try to warm yourself", "next": "warm_yourself"},
-                {"text": "Check inventory—did you lose anything?", "next": "check_inventory_swim"},
-                {"text": "Custom action", "next": "custom_crawl_water"}
+                {"text": "Check inventory—did you lose anything?", "next": "check_inventory_swim"}
             ]
         )
         
@@ -1408,8 +1352,7 @@ The lock doesn't budge. The water is at your lips now. You're out of time!
 This isn't working!""",
             [
                 {"text": "Dive for underwater passage—last chance!", "next": "dive_last_chance"},
-                {"text": "Keep bashing—it has to work!", "next": "death_drowning"},
-                {"text": "Custom action", "next": "custom_bash_lock"}
+                {"text": "Keep bashing—it has to work!", "next": "death_drowning"}
             ]
         )
         
@@ -1421,8 +1364,7 @@ It's not clean water—this might make things worse. But you do your best.
 Risk of infection increased slightly.""",
             [
                 {"text": "Continue onward", "next": "drainage_tunnel"},
-                {"text": "Try to bandage it as well", "next": "bind_wound_cloth"},
-                {"text": "Custom action", "next": "custom_rinse"}
+                {"text": "Try to bandage it as well", "next": "bind_wound_cloth"}
             ]
         )
         
@@ -1434,8 +1376,7 @@ It's not medical care, but it helps stop the bleeding.
 Bleeding reduced. Health stabilized.""",
             [
                 {"text": "Continue forward", "next": "drainage_tunnel"},
-                {"text": "Rest briefly", "next": "rest_tunnel"},
-                {"text": "Custom action", "next": "custom_bind"}
+                {"text": "Rest briefly", "next": "rest_tunnel"}
             ]
         )
         
@@ -1449,8 +1390,7 @@ The Overseer's throne sits above bones. His key opens all doors."
 This is valuable information about the dungeon's layout and secrets.""",
             [
                 {"text": "Memorize this and continue", "next": "torch_corridor"},
-                {"text": "Look for more symbols", "next": "search_more_symbols"},
-                {"text": "Custom action", "next": "custom_decipher"}
+                {"text": "Look for more symbols", "next": "search_more_symbols"}
             ]
         )
         
@@ -1463,8 +1403,7 @@ containing glowing blue liquid.""",
             [
                 {"text": "Take the vial carefully", "next": "take_mysterious_vial"},
                 {"text": "Leave it—could be cursed", "next": "leave_vial"},
-                {"text": "Drink it immediately", "next": "drink_mystery_vial"},
-                {"text": "Custom action", "next": "custom_vial"}
+                {"text": "Drink it immediately", "next": "drink_mystery_vial"}
             ]
         )
         
@@ -1479,8 +1418,7 @@ The guard stirs. His eyes begin to open!""",
                 {"text": "Freeze completely", "next": "freeze_guard"},
                 {"text": "Run for it!", "next": "run_from_waking_guard"},
                 {"text": "Attack him while he's vulnerable", "next": "attack_sleeping_guard"},
-                {"text": "Hide quickly", "next": "hide_near_guard"},
-                {"text": "Custom action", "next": "custom_guard_wake"}
+                {"text": "Hide quickly", "next": "hide_near_guard"}
             ]
         )
         
@@ -1495,8 +1433,7 @@ You've entered what appears to be a mass grave. Bodies everywhere.""",
                 {"text": "Search the bodies for items", "next": "search_mass_grave"},
                 {"text": "Leave immediately—this is cursed", "next": "flee_mass_grave"},
                 {"text": "Say a prayer for the dead", "next": "pray_for_dead"},
-                {"text": "Look for a way through", "next": "navigate_grave"},
-                {"text": "Custom action", "next": "custom_mass_grave"}
+                {"text": "Look for a way through", "next": "navigate_grave"}
             ]
         )
         
@@ -1509,8 +1446,7 @@ at a doorway to his right. He's afraid of something.""",
             [
                 {"text": "Approach him openly and talk", "next": "approach_guard_talk"},
                 {"text": "Sneak past while he's distracted", "next": "sneak_past_guard"},
-                {"text": "Investigate what he fears", "next": "investigate_door"},
-                {"text": "Custom action", "next": "custom_observe"}
+                {"text": "Investigate what he fears", "next": "investigate_door"}
             ]
         )
         
@@ -1523,8 +1459,7 @@ claws raking the air. It's weakening!""",
             [
                 {"text": "Keep choking until it stops moving", "next": "strangle_ghoul_death"},
                 {"text": "Throw it against the wall", "next": "wall_slam_ghoul"},
-                {"text": "Release and finish with torch", "next": "chain_to_torch_finish"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Release and finish with torch", "next": "chain_to_torch_finish"}
             ]
         )
         
@@ -1534,8 +1469,7 @@ claws raking the air. It's weakening!""",
 You thrust the flame into its face! It shrieks and recoils, but it's not done yet!""",
             [
                 {"text": "Press the attack with fire", "next": "ghoul_eyes_torch"},
-                {"text": "Create distance and reassess", "next": "create_combat_distance"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Create distance and reassess", "next": "create_combat_distance"}
             ]
         )
         
@@ -1546,8 +1480,7 @@ at the chain. You hold on with all your strength. It's a battle of endurance now
 Your muscles burn. The ghoul weakens. It's almost done!""",
             [
                 {"text": "Hold on until it dies", "next": "strangle_ghoul_death"},
-                {"text": "Let go and escape while it's weak", "next": "escape_weak_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Let go and escape while it's weak", "next": "escape_weak_ghoul"}
             ]
         )
         
@@ -1558,8 +1491,7 @@ You have a moment to think. You're wounded. It's wounded. This could go either w
             [
                 {"text": "Continue fighting more carefully", "next": "fight_ghoul_torch"},
                 {"text": "Run while you can", "next": "run_from_ghoul"},
-                {"text": "Try to negotiate somehow", "next": "talk_to_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Try to negotiate somehow", "next": "talk_to_ghoul"}
             ]
         )
         
@@ -1572,8 +1504,7 @@ Victory! But you're hurt and tired. Combat is exhausting.""",
             [
                 {"text": "Search the area", "next": "search_victim_body"},
                 {"text": "Rest and recover", "next": "rest_after_ghoul"},
-                {"text": "Move on quickly", "next": "past_ghoul_quick"},
-                {"text": "Custom action", "next": "custom_post_combat"}
+                {"text": "Move on quickly", "next": "past_ghoul_quick"}
             ]
         )
         
@@ -1583,8 +1514,7 @@ Victory! But you're hurt and tired. Combat is exhausting.""",
 but you don't look back. You've escaped but didn't finish it. It might recover.""",
             [
                 {"text": "Keep running", "next": "run_from_ghoul"},
-                {"text": "Find a place to hide", "next": "hide_from_ghoul"},
-                {"text": "Custom action", "next": "custom_escape_combat"}
+                {"text": "Find a place to hide", "next": "hide_from_ghoul"}
             ]
         )
 
@@ -1622,8 +1552,7 @@ The betrayer left you here to drown... but you survived. Barely.""",
                 {"text": "Feel along the walls for a way out", "next": "feel_walls"},
                 {"text": "Try to stand and conserve energy", "next": "stand_conserve"},
                 {"text": "Dive underwater to search the bottom", "next": "dive_underwater"},
-                {"text": "Scream for help", "next": "scream_help"},
-                {"text": "Custom action", "next": "custom_start"}
+                {"text": "Scream for help", "next": "scream_help"}
             ]
         )
         
@@ -1635,10 +1564,9 @@ Then something else—soft, decaying. A corpse floats just beneath the surface.
 The stench makes you gag.""",
             [
                 {"text": "Search the corpse thoroughly", "next": "search_corpse"},
-                {"text": "Take only the metal chain and leave", "next": "take_chain"},
-                {"text": "Recoil in horror and back away", "next": "recoil_corpse"},
-                {"text": "Use the chain as a weapon", "next": "chain_weapon"},
-                {"text": "Custom action", "next": "custom_search_water"}
+                {"text": "Take only the metal chain and leave", "next": "take_chain_death"},
+                {"text": "Recoil in horror and back away", "next": "recoil_panic_death"},
+                {"text": "Use the chain as a weapon", "next": "chain_weapon_death"}
             ]
         )
         
@@ -1651,8 +1579,7 @@ You also find 3 copper coins and a moldy piece of bread.""",
             [
                 {"text": "Take everything and continue", "next": "after_corpse_loot"},
                 {"text": "Take only the tinderbox", "next": "tinderbox_only"},
-                {"text": "Eat the moldy bread immediately", "next": "eat_moldy_bread"},
-                {"text": "Custom action", "next": "custom_corpse"}
+                {"text": "Eat the moldy bread immediately", "next": "eat_moldy_bread"}
             ]
         )
         
@@ -1727,6 +1654,56 @@ You feel slightly more prepared, though still in mortal danger from the rising w
             ]
         )
         
+        # New deadly versions of choices
+        self.nodes["take_chain_death"] = StoryNode(
+            "take_chain_death",
+            """You grab the chain, avoiding the corpse. A mistake.
+The chain is attached to the shackle, which is bolted to the floor.
+You waste precious time trying to break it free. The water rises.
+
+By the time you realize the chain won't break, it's too late.
+The water is over your head. You try to swim but your strength is gone.
+
+CAUSE OF DEATH: Drowned while wasting time on a useless chain
+SURVIVAL TIME: 4 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["recoil_panic_death"] = StoryNode(
+            "recoil_panic_death",
+            """You recoil from the corpse in terror. The stench, the decay—it overwhelms you.
+You back away but slip on the slick floor. Your head cracks against stone.
+
+Dazed, you go under the water. You try to surface but your vision is blurred.
+Which way is up? You're disoriented. You breathe in water.
+
+CAUSE OF DEATH: Head injury and drowning (panic killed you)
+SURVIVAL TIME: 3 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["chain_weapon_death"] = StoryNode(
+            "chain_weapon_death",
+            """You wrap the chain around your fist, preparing to fight... what?
+There's nothing here but you and a corpse. You've wasted time on a weapon
+you don't need while the water rises.
+
+By the time you realize your mistake, the water is at your neck.
+You try to find an exit but it's too late. You're too slow.
+
+The chain—now a useless weight—drags you down as you try to swim.
+
+CAUSE OF DEATH: Drowned (wasted time preparing for nonexistent threat)
+SURVIVAL TIME: 4 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
         self.nodes["after_corpse_loot"] = StoryNode(
             "after_corpse_loot",
             """With the tinderbox secure in your pocket, you pocket the coins too.
@@ -1735,8 +1712,7 @@ The water continues to rise. It's now at your shoulders.""",
             [
                 {"text": "Search for a door or exit urgently", "next": "search_exit_urgent"},
                 {"text": "Try to light the tinderbox to see better", "next": "light_tinderbox_wet"},
-                {"text": "Climb onto the corpse to stay above water", "next": "climb_corpse"},
-                {"text": "Custom action", "next": "custom_after_loot"}
+                {"text": "Climb onto the corpse to stay above water", "next": "climb_corpse"}
             ]
         )
         
@@ -1798,8 +1774,7 @@ The water is at your chin now.""",
                 {"text": "Smash the lock with the chain", "next": "smash_lock_chain"},
                 {"text": "Try to pick the lock", "next": "pick_lock_grate"},
                 {"text": "Pull at the grate desperately", "next": "pull_grate"},
-                {"text": "Take a deep breath and dive for another way", "next": "dive_last_chance"},
-                {"text": "Custom action", "next": "custom_grate"}
+                {"text": "Take a deep breath and dive for another way", "next": "dive_last_chance"}
             ]
         )
         
@@ -1832,8 +1807,7 @@ something scraping against stone, and... was that a scream?""",
                 {"text": "Head toward the torch light source", "next": "torch_corridor"},
                 {"text": "Examine the symbols on the walls", "next": "examine_symbols"},
                 {"text": "Move quietly and cautiously", "next": "stealth_corridor"},
-                {"text": "Call out to see if anyone responds", "next": "call_out_corridor"},
-                {"text": "Custom action", "next": "custom_corridor"}
+                {"text": "Call out to see if anyone responds", "next": "call_out_corridor"}
             ]
         )
         
@@ -1847,8 +1821,7 @@ one leading right where you hear the sound of... chewing?""",
                 {"text": "Take the torch from the sconce", "next": "take_torch"},
                 {"text": "Go left into the dark passage", "next": "dark_passage_left"},
                 {"text": "Go right toward the chewing sound", "next": "chewing_sound_right"},
-                {"text": "Investigate the chewing sound from a distance", "next": "investigate_chewing"},
-                {"text": "Custom action", "next": "custom_torch_corridor"}
+                {"text": "Investigate the chewing sound from a distance", "next": "investigate_chewing"}
             ]
         )
         
@@ -1863,8 +1836,7 @@ on your side still bleeding slowly, and you're shivering from the cold.""",
                 {"text": "Follow the blood trail right", "next": "blood_trail"},
                 {"text": "Follow the scratch marks left", "next": "scratch_marks"},
                 {"text": "Tend to your wound quickly", "next": "tend_wound_torch"},
-                {"text": "Examine the walls more closely with the torch", "next": "examine_walls_torch"},
-                {"text": "Custom action", "next": "custom_with_torch"}
+                {"text": "Examine the walls more closely with the torch", "next": "examine_walls_torch"}
             ]
         )
         
@@ -1881,8 +1853,7 @@ It's between you and the passage beyond.""",
                 {"text": "Fight the ghoul with the torch", "next": "fight_ghoul_torch"},
                 {"text": "Try to scare it away with fire", "next": "scare_ghoul_fire"},
                 {"text": "Run back the way you came", "next": "run_from_ghoul"},
-                {"text": "Throw something to distract it and slip past", "next": "distract_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Throw something to distract it and slip past", "next": "distract_ghoul"}
             ]
         )
         
@@ -1975,8 +1946,7 @@ Silence from the stairs.""",
                 {"text": "Take the wide hallway toward the footsteps", "next": "wide_hallway"},
                 {"text": "Brave the narrow, foul passage", "next": "sewer_passage"},
                 {"text": "Descend the stairs", "next": "descend_stairs"},
-                {"text": "Hide and observe first", "next": "hide_observe"},
-                {"text": "Custom action", "next": "custom_three_paths"}
+                {"text": "Hide and observe first", "next": "hide_observe"}
             ]
         )
         
@@ -1994,8 +1964,7 @@ He seems... nervous. Maybe he can be reasoned with?""",
                 {"text": "Try to talk your way out", "next": "talk_guard"},
                 {"text": "Attack him while he's talking", "next": "attack_guard"},
                 {"text": "Surrender", "next": "surrender_guard"},
-                {"text": "Run back and take another path", "next": "run_from_guard"},
-                {"text": "Custom action", "next": "custom_guard_encounter"}
+                {"text": "Run back and take another path", "next": "run_from_guard"}
             ]
         )
         
@@ -2015,8 +1984,7 @@ He seems conflicted.""",
                 {"text": "Offer him the copper coins to look the other way", "next": "bribe_guard"},
                 {"text": "Tell him you'll go quietly back", "next": "lie_to_guard"},
                 {"text": "Appeal to his humanity", "next": "appeal_guard"},
-                {"text": "Attack while he's distracted", "next": "attack_distracted_guard"},
-                {"text": "Custom action", "next": "custom_guard_talk"}
+                {"text": "Attack while he's distracted", "next": "attack_distracted_guard"}
             ]
         )
         
@@ -2065,8 +2033,7 @@ Suddenly, the floor gives way beneath you!""",
             [
                 {"text": "Grab onto something!", "next": "grab_sewer_fall"},
                 {"text": "Drop the torch and use both hands", "next": "drop_torch_fall"},
-                {"text": "Let yourself fall and roll", "next": "fall_and_roll"},
-                {"text": "Custom action", "next": "custom_sewer_fall"}
+                {"text": "Let yourself fall and roll", "next": "fall_and_roll"}
             ]
         )
         
@@ -2079,8 +2046,7 @@ Your wounded side screams in pain. You're losing your grip...""",
             [
                 {"text": "Pull yourself up", "next": "pull_up_sewer"},
                 {"text": "Drop down carefully", "next": "drop_into_sewer"},
-                {"text": "Call for help", "next": "call_help_sewer"},
-                {"text": "Custom action", "next": "custom_hanging"}
+                {"text": "Call for help", "next": "call_help_sewer"}
             ]
         )
         
@@ -2097,8 +2063,7 @@ Not human.""",
                 {"text": "Feel your way forward slowly", "next": "feel_forward_dark"},
                 {"text": "Stay perfectly still and quiet", "next": "stay_still_dark"},
                 {"text": "Back away carefully", "next": "back_away_dark"},
-                {"text": "Use tinderbox to make light", "next": "use_tinderbox_dark"},
-                {"text": "Custom action", "next": "custom_dark_sewer"}
+                {"text": "Use tinderbox to make light", "next": "use_tinderbox_dark"}
             ]
         )
         
@@ -2117,8 +2082,7 @@ Next to it, written in blood: "Truth, Pain, Void"
                 {"text": "Try to solve the puzzle", "next": "solve_door_puzzle"},
                 {"text": "Try to force the door open", "next": "force_iron_door"},
                 {"text": "Examine the symbols more carefully", "next": "examine_door_symbols"},
-                {"text": "Go back up and try another path", "next": "back_up_stairs"},
-                {"text": "Custom action", "next": "custom_iron_door"}
+                {"text": "Go back up and try another path", "next": "back_up_stairs"}
             ]
         )
         
@@ -2135,8 +2099,7 @@ The Overseer. The one who orchestrated your betrayal and imprisonment.""",
             [
                 {"text": "Burst in and confront him", "next": "confront_overseer"},
                 {"text": "Sneak in quietly", "next": "sneak_trophy_room"},
-                {"text": "Wait and listen more", "next": "listen_overseer"},
-                {"text": "Custom action", "next": "custom_trophy_room"}
+                {"text": "Wait and listen more", "next": "listen_overseer"}
             ]
         )
         
@@ -2264,8 +2227,7 @@ Above it, what feels like another. Someone carved climbing holds into the wall!"
             [
                 {"text": "Attempt to climb out of the rising water", "next": "climb_wall_holds"},
                 {"text": "Feel further along the wall for something else", "next": "continue_feeling_wall"},
-                {"text": "Give up and search the water instead", "next": "search_cell_water"},
-                {"text": "Custom action", "next": "custom_feel_walls"}
+                {"text": "Give up and search the water instead", "next": "search_cell_water"}
             ]
         )
         
@@ -2278,8 +2240,7 @@ Suddenly, your hand slips! You're dangling by one arm, twelve feet above the wat
             [
                 {"text": "Pull yourself back up with sheer willpower", "next": "successful_climb"},
                 {"text": "Drop back into the water safely", "next": "back_to_water"},
-                {"text": "Try to swing to grab another hold", "next": "swing_for_hold"},
-                {"text": "Custom action", "next": "custom_climb"}
+                {"text": "Try to swing to grab another hold", "next": "swing_for_hold"}
             ]
         )
         
@@ -2293,8 +2254,7 @@ You made it out, but barely. The passage ahead is dark and cramped.""",
             [
                 {"text": "Crawl forward immediately", "next": "drainage_tunnel"},
                 {"text": "Rest and examine your wounds", "next": "check_wounds_passage"},
-                {"text": "Look back through the grate", "next": "look_back_grate"},
-                {"text": "Custom action", "next": "custom_after_climb"}
+                {"text": "Look back through the grate", "next": "look_back_grate"}
             ]
         )
         
@@ -2307,8 +2267,7 @@ It's been placed here deliberately, hidden from casual inspection.""",
             [
                 {"text": "Unwrap the bundle carefully", "next": "unwrap_hidden_bundle"},
                 {"text": "Take it and search for an exit first", "next": "bundle_and_exit"},
-                {"text": "Leave it and keep searching", "next": "continue_wall_search"},
-                {"text": "Custom action", "next": "custom_bundle"}
+                {"text": "Leave it and keep searching", "next": "continue_wall_search"}
             ]
         )
         
@@ -2325,8 +2284,7 @@ Someone hid this for escaped prisoners. How many others tried before you?""",
                 {"text": "Take everything and drink the health potion", "next": "drink_health_potion"},
                 {"text": "Take everything but save the potion", "next": "save_health_potion"},
                 {"text": "Take only the knife and meat", "next": "knife_meat_only"},
-                {"text": "Eat the dried meat immediately", "next": "eat_dried_meat"},
-                {"text": "Custom action", "next": "custom_hidden_items"}
+                {"text": "Eat the dried meat immediately", "next": "eat_dried_meat"}
             ]
         )
         
@@ -2339,25 +2297,26 @@ to stop the bleeding. You feel stronger, more alert. Health restored significant
 The water is at your shoulders now. Time to move!""",
             [
                 {"text": "Search for exit with renewed vigor", "next": "find_drainage_grate"},
-                {"text": "Dive underwater to find a way out", "next": "underwater_passage"},
-                {"text": "Custom action", "next": "custom_after_potion"}
+                {"text": "Dive underwater to find a way out", "next": "underwater_passage"}
             ]
         )
         
         self.nodes["stand_conserve"] = StoryNode(
             "stand_conserve",
-            """You stand still, trying to conserve your energy and warmth.
-The cold water saps your strength with every passing second.
-You shiver uncontrollably. Your wound throbs with each heartbeat.
-The water rises past your waist... your chest... your neck...
+            """You try to stand still and conserve energy, hoping to outlast the rising water.
+But the cold is brutal. You're already shivering violently.
 
-You realize this was a mistake. You need to act NOW!""",
-            [
-                {"text": "Frantically search for an exit", "next": "panic_search"},
-                {"text": "Dive down to find underwater passage", "next": "underwater_passage"},
-                {"text": "Call for help desperately", "next": "scream_help"},
-                {"text": "Custom action", "next": "custom_panic"}
-            ]
+The water rises past your waist... your chest... your neck...
+You realize too late—standing still was a death sentence.
+
+The cold has sapped too much of your strength. Your limbs won't respond.
+The water reaches your mouth. You try to swim but you're too weak, too cold.
+
+CAUSE OF DEATH: Hypothermia and drowning (chose to wait instead of act)
+SURVIVAL TIME: 5 minutes
+
+Sometimes inaction is the deadliest choice. The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
         )
         
         self.nodes["panic_search"] = StoryNode(
@@ -2368,8 +2327,7 @@ The water is at your chin. In your frantic search, your hand finds—
 a drainage grate near the ceiling! The water flows through it!""",
             [
                 {"text": "Try to open it desperately", "next": "find_drainage_grate"},
-                {"text": "Take a deep breath and dive for another way", "next": "underwater_passage"},
-                {"text": "Custom action", "next": "custom_grate_panic"}
+                {"text": "Take a deep breath and dive for another way", "next": "underwater_passage"}
             ]
         )
         
@@ -2382,8 +2340,7 @@ a current! Water is being pulled somewhere. An underwater passage!""",
             [
                 {"text": "Follow the current through the passage", "next": "underwater_passage"},
                 {"text": "Surface for air first", "next": "surface_for_air"},
-                {"text": "Feel around the passage entrance", "next": "feel_passage_entrance"},
-                {"text": "Custom action", "next": "custom_underwater"}
+                {"text": "Feel around the passage entrance", "next": "feel_passage_entrance"}
             ]
         )
         
@@ -2400,8 +2357,7 @@ something moving in the darkness. Breathing that isn't yours.""",
                 {"text": "Stay perfectly still and listen", "next": "listen_darkness"},
                 {"text": "Call out to whatever is there", "next": "call_darkness"},
                 {"text": "Feel your way along the wall away from the sound", "next": "away_from_sound"},
-                {"text": "Move toward the breathing sound", "next": "toward_breathing"},
-                {"text": "Custom action", "next": "custom_dark_chamber"}
+                {"text": "Move toward the breathing sound", "next": "toward_breathing"}
             ]
         )
         
@@ -2893,8 +2849,7 @@ The guard backs toward the weapon rack, reaching for a sword.""",
                 {"text": "Rush him before he gets the sword", "next": "rush_guard_guardroom"},
                 {"text": "Grab a weapon from the rack yourself", "next": "grab_weapon_rack"},
                 {"text": "Try to talk him down", "next": "talk_down_guard"},
-                {"text": "Run for the exit door", "next": "run_exit_guardroom"},
-                {"text": "Custom action", "next": "custom_guardroom"}
+                {"text": "Run for the exit door", "next": "run_exit_guardroom"}
             ]
         )
 
@@ -2908,8 +2863,7 @@ You need to find another way out, quickly!""",
             [
                 {"text": "Try climbing again more carefully", "next": "climb_wall_holds"},
                 {"text": "Search the water for items", "next": "search_cell_water"},
-                {"text": "Dive underwater to find a passage", "next": "dive_underwater"},
-                {"text": "Custom action", "next": "custom_back_water"}
+                {"text": "Dive underwater to find a passage", "next": "dive_underwater"}
             ]
         )
         
@@ -2923,8 +2877,7 @@ Breathing hard, you continue climbing. Each movement is agony, but you persist.
 Finally, you reach the top and pull yourself through a grate into a passage.""",
             [
                 {"text": "Crawl forward into the passage", "next": "drainage_tunnel"},
-                {"text": "Rest briefly to recover", "next": "rest_after_climb"},
-                {"text": "Custom action", "next": "custom_climb_success"}
+                {"text": "Rest briefly to recover", "next": "rest_after_climb"}
             ]
         )
         
@@ -2951,8 +2904,7 @@ You feel weak and dizzy, but more clear-headed than before.
 The water is at your neck. You MUST move now!""",
             [
                 {"text": "Search frantically for exit", "next": "find_drainage_grate"},
-                {"text": "Dive down for underwater passage", "next": "underwater_passage"},
-                {"text": "Custom action", "next": "custom_after_vomit"}
+                {"text": "Dive down for underwater passage", "next": "underwater_passage"}
             ]
         )
         
@@ -2965,8 +2917,7 @@ blood mixing with the water. The grate doesn't budge.
 The water is at your mouth now. You have seconds left!""",
             [
                 {"text": "Take final deep breath and dive for another way", "next": "dive_last_chance"},
-                {"text": "Keep pulling until you pass out", "next": "death_drowning"},
-                {"text": "Custom action", "next": "custom_final_moments"}
+                {"text": "Keep pulling until you pass out", "next": "death_drowning"}
             ]
         )
         
@@ -2981,8 +2932,7 @@ You can't turn around. You can only go forward. Your lungs burn.
 Then—blessed air! You surface in another chamber, coughing and gasping.""",
             [
                 {"text": "Catch your breath and assess situation", "next": "assess_new_chamber"},
-                {"text": "Crawl out of water immediately", "next": "crawl_from_water"},
-                {"text": "Custom action", "next": "custom_new_chamber"}
+                {"text": "Crawl out of water immediately", "next": "crawl_from_water"}
             ]
         )
         
@@ -2993,8 +2943,7 @@ It's too dark to see, and you're not a locksmith. The water rises to your lips.
 You're out of time. This isn't working!""",
             [
                 {"text": "Give up and dive for another way", "next": "dive_last_chance"},
-                {"text": "Bash the lock with something", "next": "bash_lock_desperate"},
-                {"text": "Custom action", "next": "custom_lock_attempt"}
+                {"text": "Bash the lock with something", "next": "bash_lock_desperate"}
             ]
         )
 
@@ -3008,8 +2957,7 @@ You need to keep moving or you'll go into shock, but a moment's rest helps.
 Rested slightly. Stamina recovered partially.""",
             [
                 {"text": "Continue up the tunnel", "next": "drainage_tunnel"},
-                {"text": "Tear fabric to bandage wound", "next": "bandage_wound_tunnel"},
-                {"text": "Custom action", "next": "custom_rest_tunnel"}
+                {"text": "Tear fabric to bandage wound", "next": "bandage_wound_tunnel"}
             ]
         )
         
@@ -3027,8 +2975,7 @@ You could:
             [
                 {"text": "Continue without treatment—no time", "next": "drainage_tunnel"},
                 {"text": "Rinse with water from the tunnel", "next": "rinse_wound_water"},
-                {"text": "Tear cloth from clothes to bind it", "next": "bind_wound_cloth"},
-                {"text": "Custom action", "next": "custom_wound_treatment"}
+                {"text": "Tear cloth from clothes to bind it", "next": "bind_wound_cloth"}
             ]
         )
 
@@ -3046,8 +2993,7 @@ Blood pools beneath it. The scratches on the floor lead TO it, not from it.""",
                 {"text": "Examine the iron maiden carefully", "next": "examine_iron_maiden"},
                 {"text": "Go around it and continue", "next": "past_iron_maiden"},
                 {"text": "Check if anyone is inside it", "next": "check_inside_maiden"},
-                {"text": "Go back and take the blood trail instead", "next": "blood_trail"},
-                {"text": "Custom action", "next": "custom_iron_maiden"}
+                {"text": "Go back and take the blood trail instead", "next": "blood_trail"}
             ]
         )
         
@@ -3061,8 +3007,7 @@ You notice a bottle of spirits half-empty on the floor—probably from the corps
             [
                 {"text": "Use the spirits to clean the wound (painful)", "next": "sterilize_wound"},
                 {"text": "Just keep the bandage and continue", "next": "bandaged_continue"},
-                {"text": "Drink the spirits for the pain", "next": "drink_spirits"},
-                {"text": "Custom action", "next": "custom_wound_care"}
+                {"text": "Drink the spirits for the pain", "next": "drink_spirits"}
             ]
         )
         
@@ -3082,8 +3027,7 @@ A map is sketched on the next page.""",
             [
                 {"text": "Study the map carefully", "next": "study_map"},
                 {"text": "Take journal and move on", "next": "take_journal_move"},
-                {"text": "Read more entries", "next": "read_journal_more"},
-                {"text": "Custom action", "next": "custom_journal"}
+                {"text": "Read more entries", "next": "read_journal_more"}
             ]
         )
         
@@ -3096,8 +3040,7 @@ It circles you, looking for an opening. You have the advantage for now.""",
             [
                 {"text": "Press the attack with fire", "next": "fight_ghoul_torch"},
                 {"text": "Use the opportunity to run past", "next": "run_past_ghoul"},
-                {"text": "Back away while maintaining distance", "next": "backing_away_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Back away while maintaining distance", "next": "backing_away_ghoul"}
             ]
         )
         
@@ -3112,8 +3055,7 @@ Ahead, you see three paths: stairs going down, a door, and a narrow crack.""",
                 {"text": "Take the stairs down", "next": "run_down_stairs"},
                 {"text": "Try the door", "next": "door_escape"},
                 {"text": "Squeeze through the crack", "next": "squeeze_crack"},
-                {"text": "Turn and fight—you're cornered", "next": "cornered_fight_ghoul"},
-                {"text": "Custom action", "next": "custom_chase"}
+                {"text": "Turn and fight—you're cornered", "next": "cornered_fight_ghoul"}
             ]
         )
         
@@ -3127,8 +3069,7 @@ You're past! But you hear it realize the trick. It's coming after you!""",
             [
                 {"text": "Keep running", "next": "run_from_ghoul"},
                 {"text": "Hide quickly", "next": "hide_from_ghoul"},
-                {"text": "Turn and fight now that you have distance", "next": "fight_ghoul_distance"},
-                {"text": "Custom action", "next": "custom_post_distract"}
+                {"text": "Turn and fight now that you have distance", "next": "fight_ghoul_distance"}
             ]
         )
         
@@ -3141,8 +3082,7 @@ You barely dodge—it catches your arm, tearing fabric and skin.""",
                 {"text": "Swing the chain again", "next": "chain_second_strike"},
                 {"text": "Drop chain and grab the torch", "next": "switch_to_torch"},
                 {"text": "Strangle it with the chain", "next": "strangle_ghoul"},
-                {"text": "Retreat and reassess", "next": "retreat_from_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Retreat and reassess", "next": "retreat_from_ghoul"}
             ]
         )
         
@@ -3155,8 +3095,7 @@ You have a critical moment—press the advantage or escape!""",
             [
                 {"text": "Finish it while it's vulnerable", "next": "finish_burning_ghoul"},
                 {"text": "Run while it's distracted", "next": "escape_burning_ghoul"},
-                {"text": "Set it fully ablaze with the torch", "next": "ghoul_eyes_torch"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Set it fully ablaze with the torch", "next": "ghoul_eyes_torch"}
             ]
         )
         
@@ -3169,8 +3108,7 @@ It swipes at your legs with its claws!""",
             [
                 {"text": "Jump back and strike with torch", "next": "torch_strike_wounded"},
                 {"text": "Stomp on its head", "next": "stomp_ghoul"},
-                {"text": "Run past it while it's down", "next": "run_past_wounded_ghoul"},
-                {"text": "Custom action", "next": "combat_ghoul"}
+                {"text": "Run past it while it's down", "next": "run_past_wounded_ghoul"}
             ]
         )
         
@@ -3184,8 +3122,7 @@ But gods, you're so hungry...""",
             [
                 {"text": "Search the area for other food", "next": "search_for_food"},
                 {"text": "Move on despite the hunger", "next": "past_ghoul_quick"},
-                {"text": "Search the victim's body for supplies instead", "next": "search_victim_body"},
-                {"text": "Custom action", "next": "custom_resist_cannibalism"}
+                {"text": "Search the victim's body for supplies instead", "next": "search_victim_body"}
             ]
         )
         
@@ -3198,8 +3135,7 @@ You can feel yourself changing. The dungeon is getting into your head.""",
             [
                 {"text": "Continue with the meat hidden away", "next": "past_ghoul_with_meat"},
                 {"text": "Throw it away—this was wrong", "next": "throw_meat_away"},
-                {"text": "Search the victim for other items", "next": "search_victim_body"},
-                {"text": "Custom action", "next": "custom_meat_decision"}
+                {"text": "Search the victim for other items", "next": "search_victim_body"}
             ]
         )
         
@@ -3215,8 +3151,7 @@ A figure sits in the center—hooded, waiting. It gestures for you to approach."
                 {"text": "Approach the hooded figure", "next": "approach_dark_figure"},
                 {"text": "Attack the figure", "next": "attack_dark_figure"},
                 {"text": "Run away screaming", "next": "run_insane"},
-                {"text": "Sit among the bones and wait", "next": "wait_in_bones"},
-                {"text": "Custom action", "next": "custom_insane_chamber"}
+                {"text": "Sit among the bones and wait", "next": "wait_in_bones"}
             ]
         )
         
@@ -3230,8 +3165,7 @@ You can continue now, but the temptation is always there, whispering.""",
             [
                 {"text": "Continue forward with renewed resolve", "next": "past_ghoul_quick"},
                 {"text": "Search the area thoroughly", "next": "search_victim_body"},
-                {"text": "Take a moment to center yourself", "next": "meditate_sanity"},
-                {"text": "Custom action", "next": "custom_fight_madness"}
+                {"text": "Take a moment to center yourself", "next": "meditate_sanity"}
             ]
         )
         
@@ -3245,8 +3179,7 @@ Health improved slightly. Wound stabilized.""",
             [
                 {"text": "Continue onward", "next": "equip_dagger_continue"},
                 {"text": "Rest a moment while the herbs work", "next": "rest_with_herbs"},
-                {"text": "Take remaining herbs for later", "next": "herbs_for_later"},
-                {"text": "Custom action", "next": "custom_herbs"}
+                {"text": "Take remaining herbs for later", "next": "herbs_for_later"}
             ]
         )
         
@@ -3259,8 +3192,7 @@ Stamina restored partially.""",
             [
                 {"text": "Save the rest and continue", "next": "equip_dagger_continue"},
                 {"text": "Drink it all now", "next": "drink_all_water"},
-                {"text": "Use some to clean your wound", "next": "water_clean_wound"},
-                {"text": "Custom action", "next": "custom_waterskin"}
+                {"text": "Use some to clean your wound", "next": "water_clean_wound"}
             ]
         )
         
@@ -3277,8 +3209,7 @@ It cannot tolerate bright light—fire is your best defense."
 This is valuable information.""",
             [
                 {"text": "Memorize this and continue", "next": "equip_dagger_continue"},
-                {"text": "Keep the note for reference", "next": "keep_note"},
-                {"text": "Custom action", "next": "custom_note"}
+                {"text": "Keep the note for reference", "next": "keep_note"}
             ]
         )
         
@@ -3292,8 +3223,7 @@ The passage is so narrow you have to crawl in places.""",
             [
                 {"text": "Continue through the sewers", "next": "sewer_passage_after_guard"},
                 {"text": "Turn back—this is too dangerous", "next": "wide_hallway"},
-                {"text": "Move slowly and carefully", "next": "careful_sewer"},
-                {"text": "Custom action", "next": "custom_sewer_entrance"}
+                {"text": "Move slowly and carefully", "next": "careful_sewer"}
             ]
         )
         
@@ -3307,8 +3237,7 @@ levels the guard mentioned. Very few who enter here return.""",
             [
                 {"text": "Examine the door", "next": "descend_stairs"},
                 {"text": "Continue down further", "next": "deeper_descent"},
-                {"text": "Go back up and try the sewers instead", "next": "sewer_passage"},
-                {"text": "Custom action", "next": "custom_lower_stairs"}
+                {"text": "Go back up and try the sewers instead", "next": "sewer_passage"}
             ]
         )
         
@@ -3324,8 +3253,7 @@ The darkness in your heart grows. But you now have his armor and spear.""",
                 {"text": "Take his equipment and move on", "next": "loot_guard_body"},
                 {"text": "Feel remorse and say a prayer", "next": "remorse_guard"},
                 {"text": "Hide the body quickly", "next": "hide_guard_body"},
-                {"text": "Run before anyone sees you", "next": "flee_murder_scene"},
-                {"text": "Custom action", "next": "custom_betrayal"}
+                {"text": "Run before anyone sees you", "next": "flee_murder_scene"}
             ]
         )
         
@@ -3338,8 +3266,7 @@ He points his spear toward the sewer passage. His patience is exhausted.""",
             [
                 {"text": "Thank him and go to sewers", "next": "sewer_passage_after_guard"},
                 {"text": "Thank him and take the stairs", "next": "stairs_after_guard"},
-                {"text": "Attack him while he's gesturing", "next": "surprise_attack_guard"},
-                {"text": "Custom action", "next": "custom_guard_patience"}
+                {"text": "Attack him while he's gesturing", "next": "surprise_attack_guard"}
             ]
         )
 
@@ -3357,8 +3284,7 @@ There's more here, but it would take time to decipher fully.""",
             [
                 {"text": "Continue examining symbols closely", "next": "decipher_symbols"},
                 {"text": "Move on—no time for archaeology", "next": "torch_corridor"},
-                {"text": "Trace the symbols with your finger", "next": "touch_symbols"},
-                {"text": "Custom action", "next": "custom_symbols"}
+                {"text": "Trace the symbols with your finger", "next": "touch_symbols"}
             ]
         )
         
@@ -3373,8 +3299,7 @@ To your left, a narrow side passage slopes downward.""",
             [
                 {"text": "Sneak past the sleeping guard", "next": "sneak_past_guard"},
                 {"text": "Take the side passage", "next": "side_passage_down"},
-                {"text": "Wait and observe longer", "next": "observe_guard"},
-                {"text": "Custom action", "next": "custom_stealth"}
+                {"text": "Wait and observe longer", "next": "observe_guard"}
             ]
         )
         
@@ -3389,8 +3314,7 @@ You've alerted the guards!""",
             [
                 {"text": "Run back into the drainage tunnel", "next": "run_back_tunnel"},
                 {"text": "Stand your ground and face them", "next": "face_guards"},
-                {"text": "Hide in the shadows quickly", "next": "quick_hide"},
-                {"text": "Custom action", "next": "custom_guards_coming"}
+                {"text": "Hide in the shadows quickly", "next": "quick_hide"}
             ]
         )
 
@@ -3408,8 +3332,7 @@ Something is RIGHT IN FRONT OF YOU in the darkness.""",
                 {"text": "Back away slowly and quietly", "next": "back_away_creature"},
                 {"text": "Strike out at whatever it is", "next": "strike_blind"},
                 {"text": "Stay perfectly still", "next": "freeze_darkness"},
-                {"text": "Run back the way you came", "next": "run_from_darkness"},
-                {"text": "Custom action", "next": "custom_dark_creature"}
+                {"text": "Run back the way you came", "next": "run_from_darkness"}
             ]
         )
         
@@ -3425,8 +3348,7 @@ It's coming for you!""",
             [
                 {"text": "Run back to the torch", "next": "run_to_torch"},
                 {"text": "Fight in the darkness", "next": "fight_blind"},
-                {"text": "Play dead on the ground", "next": "play_dead"},
-                {"text": "Custom action", "next": "custom_fight_dark"}
+                {"text": "Play dead on the ground", "next": "play_dead"}
             ]
         )
         
@@ -3441,8 +3363,7 @@ You have the advantage of surprise.""",
                 {"text": "Take the torch and attack while it's distracted", "next": "torch_sneak_attack"},
                 {"text": "Try to sneak past while it feeds", "next": "sneak_past_ghoul"},
                 {"text": "Go back and take the other path", "next": "dark_passage_left"},
-                {"text": "Throw something to distract it", "next": "distract_feeding_ghoul"},
-                {"text": "Custom action", "next": "custom_ghoul_surprise"}
+                {"text": "Throw something to distract it", "next": "distract_feeding_ghoul"}
             ]
         )
 
@@ -3720,8 +3641,7 @@ The dungeon claims another victim.""",
         print("\nYou were betrayed. Left to drown in a flooded cell.")
         print("But you survived. Now you must escape the dungeon.")
         print("\nThis is a game of choices. Most lead to death.")
-        print("Some lead to freedom. Type the number of your choice,")
-        print("or choose 'Custom action' to describe your own action.")
+        print("Few lead to survival. Choose wisely.")
         print("\nGood luck. You'll need it.")
         print("="*60)
         input("\nPress Enter to begin...")
