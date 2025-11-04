@@ -1,33 +1,42 @@
 # Zagreus' Descent - A Dark Dungeon Crawler
 
-A complex, story-driven text adventure game inspired by Fear and Hunger with deep mechanics and branching narratives.
+A brutal, story-driven text adventure game inspired by Fear and Hunger with unforgiving mechanics and branching narratives.
 
 ## Story
 
-You are Zagreus, betrayed and thrown into a flooded dungeon cell to drown. But you survived the water, the darkness, and the cold. Now you must navigate a massive, deadly dungeon filled with horrors, tough choices, and countless ways to die.
+You are Zagreus, betrayed by a former companion and thrown into a flooded dungeon hole to drown. You survived the initial fall, wounded and trapped in darkness. Now you must escape a massive, deadly dungeon where most choices lead to death. Only the wisest (or luckiest) will survive.
+
+## Key Changes
+
+**Recent Updates:**
+- **Removed "Custom Action" menu option** - AI combat system remains for resolving fights, but player choices are now limited to specific options for a more focused experience
+- **Betrayer character replaces guard** - The sadistic figure mocking you from above is your former companion who betrayed you, not a guard
+- **Escape from the hole is nearly impossible** - Rope tricks don't work, climbing fails, most paths lead to death
+- **Hidden crack is the primary escape route** - Only 2-3 specific starting paths lead to finding the secret passage
+- **Vastly increased early-game lethality** - Most starting choices now lead to unique death scenarios
+- **More diverse outcomes** - Different bad choices lead to different gruesome deaths
 
 ## Features
 
-- **Massive Decision Tree**: 287+ unique story nodes with hundreds of unique paths and choices
-- **AI Dungeon Master**: Custom actions evaluated intelligently based on full context
+- **Massive Decision Tree**: 287+ unique story nodes with hundreds of paths
+- **Brutal Difficulty**: Most choices lead to death - only 2-3 routes from the start survive
+- **AI-Powered Combat**: Combat outcomes determined by AI based on stats, equipment, and tactics
 - **Enhanced Combat System**: 
   - Tactical targeting (eyes, head, legs, throat, etc.)
   - Status effects (bleeding, poisoned, burning, stunned, etc.)
   - Critical hits and counterattacks
   - Equipment bonuses and durability
-  - Environmental factors and positioning
 - **Deep Survival Mechanics**: 
   - Hunger, temperature, wounds, sanity, fear
-  - Equipment degradation over time
-  - Status effects that persist across encounters
-  - Lighting affects combat and exploration
-- **Advanced Body Damage System**: Can lose limbs, eyes, and other body parts with realistic consequences
-- **Multiple Endings**: 100 different endings (10 good, 90 bad) based on your choices
-- **Thousands of Deaths**: Die in ridiculous, brutal, and unexpected ways
-- **Rich Environmental Storytelling**: Ancient symbols, hidden lore, and atmospheric details
-- **NPC Interactions**: Guards, prisoners, and other characters with their own motivations
-- **15-20 Minute Playtime**: First act takes place entirely in the dungeon
-- **No UI Needed**: Pure console/terminal experience
+  - Equipment degradation
+  - Status effects that persist
+  - Light/darkness affects everything
+- **Advanced Body Damage**: Can lose limbs, eyes with realistic consequences
+- **100 Different Endings**: 10 good, 90 bad based on your path
+- **Hundreds of Unique Deaths**: Die in brutal, unexpected ways
+- **Rich Atmosphere**: Dark environmental storytelling
+- **15-20 Minute Playtime**: First act in the dungeon
+- **Pure Terminal Experience**: No UI needed
 
 ## Requirements
 
@@ -58,128 +67,93 @@ python zagreus_dungeon.py
 
 ## Gameplay
 
-The game presents you with situations and choices. You can:
-1. **Select numbered options** - Type the number and press Enter
-2. **Use custom actions** - Choose "Custom action" and describe what you want to do
-   - The AI Dungeon Master will evaluate your action based on:
-     - Your stats (strength, agility, mind)
-     - Your equipment (weapons, light source, armor, offhand)
-     - Your condition (wounds, hunger, temperature, status effects)
-     - Environmental factors (darkness, water, etc.)
-     - The situation context
+The game presents situations and numbered choices. Select by typing the number.
 
-### Enhanced Combat System
+### Starting Paths (SPOILERS)
 
-Combat is challenging and deeply tactical:
-- **Targeting matters**: Hitting weak points (eyes, throat, joints) is more effective
-- **Status effects**: Bleeding, poison, burning, stunning enemies and yourself
-- **Equipment matters**: Weapons, light sources, and armor significantly impact outcomes
-- **Stats matter**: Strength, agility, and mind affect success rates and damage
-- **Conditions matter**: Fighting in darkness, with injuries, or without limbs is much harder
-- **Critical hits**: Chance-based critical strikes for devastating damage
-- **Counterattacks**: Enemies can strike back if you're not careful
-- **Death is permanent**: Each playthrough ends when you die or escape
+From the flooded cell, only these paths typically survive:
+1. **Search corpse thoroughly** → Take tinderbox → Find drainage grate → Escape
+2. **Feel walls** → Continue feeling → Find hidden bundle → Escape
+3. **Scream for help** → Betrayer taunts you → Find hidden crack → Escape
+
+All other initial choices lead to unique death scenarios:
+- **Stand and conserve energy** → Die from hypothermia
+- **Take chain without searching** → Waste time, drown
+- **Attempt to climb** → Fall and die
+- **Panic or recoil** → Head injury, drown
+- And many more...
+
+### Combat System
+
+Combat is resolved by the AI based on:
+- Your stats (strength, agility, mind)
+- Your equipment (weapon, light, armor)
+- Your condition (wounds, stamina, status effects)
+- Enemy type and weaknesses
+- Environmental factors
 
 ### Survival Mechanics
 
-Monitor your status carefully:
-- **Health**: Damage from combat, falls, and environmental hazards
-- **Stamina**: Energy for actions, recovers when resting
-- **Hunger**: Increases over time (every 5 turns), find food or face starvation
-- **Wetness**: Affects temperature and health, dries slowly over time
-- **Temperature**: Too cold (hypothermia) or too hot causes ongoing damage
-- **Sanity**: Witnessing horrors and making dark choices affects your mind
-- **Fear**: High fear attracts the Harvester
-- **Light**: Darkness hides details, options, and dangers
-- **Status Effects**: Bleeding, poisoned, burning, infected, stunned, etc.
-- **Equipment Durability**: Gear degrades and can break (every 8 turns)
+Monitor carefully:
+- **Health**: Damage from all sources
+- **Stamina**: Energy for actions
+- **Hunger**: Death at 100
+- **Wetness**: Affects temperature
+- **Temperature**: Hypothermia kills
+- **Sanity**: Low sanity causes problems
+- **Fear**: Attracts the Harvester
+- **Status Effects**: Bleeding, poison, etc.
+- **Equipment Durability**: Gear breaks
 
 ### Death
 
-Death is common and often brutal:
-- Drowning in flooded cells
-- Eaten by dungeon creatures (ghouls, etc.)
-- Poisoning from bad food or traps
-- Bleeding out from wounds
-- Starvation when hunger reaches 100
-- Hypothermia from cold and wet conditions
-- Madness from low sanity
-- The Harvester (a special horror)
-- Infection from untreated wounds
-- Combat wounds and accumulated damage
-- And hundreds more ways...
+Death is permanent and common:
+- Drowning variations
+- Starvation
+- Hypothermia
+- Poisoning
+- Combat
+- Blood loss
+- Infection
+- Falls
+- And 100+ more unique scenarios
 
 ## Tips
 
-1. **Light is crucial** - Finding a torch or tinderbox early opens many paths and improves combat
-2. **Not all food is safe** - Inspect before eating, poison kills quickly
-3. **Combat is risky** - Sometimes running or talking is smarter than fighting
-4. **Equipment matters** - A weapon, armor, and light can save your life
-5. **Manage resources** - Don't waste healing items, food, or water
-6. **Read carefully** - Details in descriptions often hint at dangers
-7. **Experiment** - Custom actions can find creative solutions
-8. **Death teaches** - Each death reveals something about the dungeon
-9. **Status effects matter** - Treat bleeding and infection quickly
-10. **Equipment degrades** - Don't rely on gear lasting forever
-
-## Game Structure
-
-The decision tree works as follows:
-- **Branching paths**: Choices lead to different scenarios
-- **Converging paths**: Different routes can merge back together
-- **State persistence**: Items, wounds, and status effects persist across nodes
-- **Item dependency**: Some choices only available with specific items
-- **Multiple endpoints**: Many ways to die, several ways to escape
-- **Dynamic combat**: AI evaluates custom combat actions contextually
-- **Environmental effects**: Light, temperature, and location affect outcomes
-
-## New Features
-
-### Status Effects System
-- Bleeding: Causes damage over time
-- Poisoned: Damages health and stamina
-- Burning: Intense damage over time
-- Infected: Reduces max health over time
-- Stunned: Cannot act effectively
-- And more...
-
-### Equipment System
-- **Weapon slot**: Increases damage and unlocks combat options
-- **Armor slot**: Reduces damage taken
-- **Light slot**: Reveals details, improves accuracy
-- **Accessory slot**: Special effects
-- **Offhand slot**: Shield or secondary weapon
-- **Durability**: All equipment degrades with use
-
-### Enhanced AI
-- Evaluates stealth attempts based on wetness, armor, light
-- Swimming checks consider armor weight and limb status
-- Climbing considers wetness, stamina, and equipment
-- Persuasion affected by sanity level
-- Puzzle-solving requires light and sanity
-- Trap detection uses agility and tools
+1. **Read carefully** - Most hints are in the descriptions
+2. **Light is crucial** - Darkness hides dangers and limits options
+3. **Not all paths are equal** - Some choices are traps
+4. **Equipment matters** - Find weapons and armor early
+5. **Manage resources** - Don't waste healing items
+6. **Most choices kill you** - Expect to die and restart
+7. **Learn from deaths** - Each death teaches you something
+8. **Status effects are deadly** - Treat wounds immediately
+9. **The betrayer won't help** - Don't trust rope tricks
+10. **Search thoroughly** - Hidden items save lives
 
 ## Warnings
 
 ⚠️ This game contains:
-- Dark themes and horror elements
-- Graphic descriptions of violence and death
+- Dark themes and horror
+- Graphic violence and death
 - Difficult moral choices
-- High difficulty and frequent death
+- Extreme difficulty
 - Psychological horror
+- Frequent player death
 
-Not recommended for players sensitive to dark content.
+Not for players sensitive to dark content.
 
 ## Development
 
-Created as a complex narrative game with:
-- Dynamic AI-driven responses with deep context awareness
-- Extensive branching story structure (287+ nodes)
-- Sophisticated state management with status effects
-- Realistic consequence system with equipment degradation
+A complex narrative game featuring:
+- AI-driven combat resolution
+- Extensive branching paths (287+ nodes)
+- Sophisticated survival systems
+- Realistic consequences
 - Rich environmental storytelling
+- Betrayal-focused narrative
 
-The game is designed to be replayed, with each playthrough revealing new paths and secrets.
+Designed for multiple playthroughs to discover all paths and endings.
 
 ---
 
