@@ -1,0 +1,6 @@
+# Zagreus' Descent - Requirements
+
+# Optional: For AI-powered combat (highly recommended for best experience)
+openai>=1.0.0
+
+# Core game works without AI - falls back to rule-based system

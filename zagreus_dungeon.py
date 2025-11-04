@@ -8,7 +8,10 @@ import sys
 import random
 import json
 import os
+import time
+import pickle
 from typing import Dict, List, Optional, Tuple, Any
+from datetime import datetime
 
 # Game constants
 DARKNESS_FAILURE_THRESHOLD = 30
@@ -16,6 +19,21 @@ FIND_CHANCE_WITH_LIGHT = 40
 FIND_CHANCE_WITHOUT_LIGHT = 10
 MAX_INPUT_LENGTH = 500
 MAX_INPUT_RETRIES = 5
+
+# AI Configuration (Optional - falls back to rule-based if not configured)
+USE_AI_COMBAT = os.getenv("USE_AI_COMBAT", "false").lower() == "true"
+AI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+AI_MODEL = os.getenv("AI_MODEL", "gpt-4")
+
+# Checkpoint Configuration
+SAVE_DIR = os.path.join(os.path.dirname(__file__), "saves")
+AUTO_CHECKPOINT_NODES = [
+    "drainage_tunnel",
+    "equip_dagger_continue", 
+    "past_ghoul_quick",
+    "guardroom_escape",
+    "trophy_room_entrance"
+]
 
 # Status effect damage constants
 STATUS_DAMAGE_BLEEDING = 3
@@ -100,11 +118,29 @@ class GameState:
         # Discovered paths
         self.visited_nodes = set()
         self.node_history = []  # Ordered list for tracking previous nodes
+        
+        # Checkpoints
+        self.checkpoints = []  # List of saved states at key moments
+        self.last_checkpoint_node = None
+        
+        # Time pressure tracking
+        self.action_timer = 0  # Counts actions in time-sensitive situations
+        self.in_timed_scenario = False
+        self.time_limit = 0
 
 # AI Dungeon Master for dynamic responses
 class DungeonMaster:
     def __init__(self, state: GameState):
         self.state = state
+        self.ai_enabled = USE_AI_COMBAT and AI_API_KEY
+        if self.ai_enabled:
+            try:
+                import openai
+                self.ai_client = openai.OpenAI(api_key=AI_API_KEY)
+            except ImportError:
+                print("[Warning: openai package not installed. Install with: pip install openai]")
+                print("[Falling back to rule-based combat system]")
+                self.ai_enabled = False
         
     def evaluate_action(self, action: str, context: Dict) -> Tuple[bool, str, Dict]:
         """
@@ -113,12 +149,105 @@ class DungeonMaster:
         """
         action_lower = action.lower()
         
-        # Combat evaluation
+        # Combat evaluation - use AI if enabled
         if context.get("in_combat"):
-            return self._evaluate_combat(action_lower, context)
+            if self.ai_enabled:
+                return self._evaluate_combat_ai(action, context)
+            else:
+                return self._evaluate_combat(action_lower, context)
         
         # Exploration evaluation
         return self._evaluate_exploration(action_lower, context)
+    
+    def _evaluate_combat_ai(self, action: str, context: Dict) -> Tuple[bool, str, Dict]:
+        """
+        Use AI to strictly evaluate combat actions
+        AI is instructed to be VERY strict and find excuses to kill player
+        """
+        enemy = context.get("enemy", {})
+        enemy_type = enemy.get("type", "unknown")
+        enemy_health = context.get("enemy_health", 40)
+        weaknesses = enemy.get("weaknesses", [])
+        
+        # Build context for AI
+        player_status = f"""
+Player Status:
+- Health: {self.state.health}/{self.state.max_health}
+- Stamina: {self.state.stamina}/{self.state.max_stamina}
+- Missing arms: {not self.state.left_arm or not self.state.right_arm}
+- Missing legs: {not self.state.left_leg or not self.state.right_leg}
+- Equipped weapon: {self.state.equipped.get('weapon', 'None')}
+- Equipped light: {self.state.equipped.get('light', 'None')}
+- Equipped armor: {self.state.equipped.get('armor', 'None')}
+- Status effects: {[k for k, v in self.state.status_effects.items() if v > 0]}
+- Strength: {self.state.strength}, Agility: {self.state.agility}, Mind: {self.state.mind}
+"""
+        
+        enemy_status = f"""
+Enemy: {enemy_type}
+- Health: {enemy_health}
+- Weaknesses: {weaknesses if weaknesses else 'None'}
+- Special: {enemy.get('special', 'Standard enemy')}
+"""
+        
+        prompt = f"""You are a STRICT dungeon master for a brutal dark fantasy game.
+{player_status}
+{enemy_status}
+
+Player's action: "{action}"
+
+RULES:
+1. Be EXTREMELY strict - find logical reasons to kill the player unless the action is nearly perfect
+2. If player has no arms and tries to attack, they MUST die
+3. If action makes no sense for the situation, player dies
+4. Only allow survival if: action targets weakness, uses proper equipment, or is exceptionally creative AND logical
+5. Weak or generic attacks should fail catastrophically
+6. Player CANNOT fight a huge monster with bare hands - instant death
+7. Running/dodging/hiding are valid IF player has the ability (legs, stamina, etc)
+
+Respond in JSON format:
+{{
+    "success": true/false,
+    "description": "What happens (be dramatic and brutal)",
+    "damage_taken": 0-100,
+    "damage_dealt": 0-100,
+    "instant_death": true/false,
+    "reasoning": "Why this outcome occurred"
+}}
+"""
+        
+        try:
+            response = self.ai_client.chat.completions.create(
+                model=AI_MODEL,
+                messages=[
+                    {"role": "system", "content": "You are a brutal, unforgiving dungeon master. Be creative but strictly logical."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
+            
+            result_text = response.choices[0].message.content
+            # Extract JSON from response
+            import re
+            json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+            else:
+                result = json.loads(result_text)
+            
+            effects = {
+                "damage_taken": result.get("damage_taken", 0),
+                "damage_dealt": result.get("damage_dealt", 0),
+                "instant_death": result.get("instant_death", False),
+                "status": []
+            }
+            
+            return (result["success"], result["description"], effects)
+            
+        except Exception as e:
+            print(f"[AI Error: {e}. Falling back to rule-based system]")
+            return self._evaluate_combat(action.lower(), context)
     
     def _evaluate_combat(self, action: str, context: Dict) -> Tuple[bool, str, Dict]:
         enemy = context.get("enemy", {})
@@ -1802,7 +1931,10 @@ After several minutes, you see a dim light ahead—not sunlight, but torchlight!
 
 You emerge into a larger corridor. Stone walls, ancient and covered in strange symbols.
 This is the dungeon proper. You hear distant sounds: dripping water, 
-something scraping against stone, and... was that a scream?""",
+something scraping against stone, and... was that a scream?
+
+There's a faint smell in the air—not just damp and mold, but something else.
+Sulfur? Decay? Something chemical. The walls are warm to the touch in places.""",
             [
                 {"text": "Head toward the torch light source", "next": "torch_corridor"},
                 {"text": "Examine the symbols on the walls", "next": "examine_symbols"},
@@ -1816,7 +1948,11 @@ something scraping against stone, and... was that a scream?""",
             """You approach the source of light—a torch mounted in a sconce on the wall.
 It's still burning, which means someone was here recently.
 Next to it, you see two paths: one leading left into darkness, 
-one leading right where you hear the sound of... chewing?""",
+one leading right where you hear the sound of... chewing?
+
+The chewing is wet, methodical. Bones cracking. Something feeding.
+The left passage has claw marks gouged deep into the stone—far too large
+to be from rats. Fresh scratches. Whatever made them was here very recently.""",
             [
                 {"text": "Take the torch from the sconce", "next": "take_torch"},
                 {"text": "Go left into the dark passage", "next": "dark_passage_left"},
@@ -1829,9 +1965,13 @@ one leading right where you hear the sound of... chewing?""",
             "take_torch",
             """You grab the torch. Finally, you have light!
 The flickering flame reveals the corridor more clearly.
-Blood stains on the floor leading right. Scratch marks on the walls leading left.
+Blood stains on the floor leading right—still wet in places. Scratch marks on the walls leading left.
 You can now see your own condition: your clothes are torn, you have a deep gash
-on your side still bleeding slowly, and you're shivering from the cold.""",
+on your side still bleeding slowly, and you're shivering from the cold.
+
+As you lift the torch, shadows dance on the walls. For a moment, you think you see
+movement in the darkness beyond—something retreating from the light. Watching.
+The smell is stronger now. Definitely sulfur mixed with rot.""",
             [
                 {"text": "Follow the blood trail right", "next": "blood_trail"},
                 {"text": "Follow the scratch marks left", "next": "scratch_marks"},
@@ -1844,11 +1984,14 @@ on your side still bleeding slowly, and you're shivering from the cold.""",
             "blood_trail",
             """You follow the blood trail. It leads to a gruesome scene:
 A partially devoured body lies against the wall. Fresh. The flesh is still warm.
+The victim's eyes are wide open in terror—they died screaming.
 Standing over it is a creature—hunched, humanoid but wrong. Its skin is pale and
 stretched tight over elongated bones. It turns to face you with milky white eyes.
 
 A GHOUL. It hisses, blood dripping from its mouth.
-It's between you and the passage beyond.""",
+It's between you and the passage beyond.
+
+You notice: the ghoul's skin is dry, cracked. It flinches slightly from your torch light.""",
             [
                 {"text": "Fight the ghoul with the torch", "next": "fight_ghoul_torch"},
                 {"text": "Try to scare it away with fire", "next": "scare_ghoul_fire"},
@@ -2165,6 +2308,32 @@ Your parts will become part of the collection.
 
 CAUSE OF DEATH: Harvested
 SURVIVAL TIME: 8 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["death_time_pressure"] = StoryNode(
+            "death_time_pressure",
+            """You took too long. While you deliberated, searched, and talked,
+precious time slipped away. The situation became unrecoverable.
+
+Death came not from a wrong choice, but from hesitation.
+
+CAUSE OF DEATH: Too slow to act
+SURVIVAL TIME: varies
+
+In the dungeon, indecision is death. The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["death_burning"] = StoryNode(
+            "death_burning",
+            """The flames consume you. You scream, but no one hears. No one cares.
+The fire spreads across your body, unstoppable. The pain is beyond description.
+
+CAUSE OF DEATH: Burned alive
+SURVIVAL TIME: varies
 
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
@@ -3492,6 +3661,116 @@ The dungeon claims another victim.""",
         
         self.nodes["restart"] = "RESTART"
     
+    def create_checkpoint(self, checkpoint_name: str = None):
+        """Create a checkpoint at current state"""
+        if not os.path.exists(SAVE_DIR):
+            os.makedirs(SAVE_DIR)
+        
+        checkpoint_data = {
+            "state": self.state,
+            "current_node": self.current_node,
+            "checkpoint_name": checkpoint_name or self.current_node,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        self.state.checkpoints.append(checkpoint_name or self.current_node)
+        self.state.last_checkpoint_node = self.current_node
+        
+        # Save to file
+        save_file = os.path.join(SAVE_DIR, f"checkpoint_{len(self.state.checkpoints)}.pkl")
+        with open(save_file, 'wb') as f:
+            pickle.dump(checkpoint_data, f)
+        
+        print(f"\n[💾 CHECKPOINT SAVED: {checkpoint_name or self.current_node}]")
+        return save_file
+    
+    def load_checkpoint(self, checkpoint_number: int = None):
+        """Load a specific checkpoint or the latest one"""
+        if checkpoint_number is None:
+            # Find latest checkpoint
+            saves = [f for f in os.listdir(SAVE_DIR) if f.startswith("checkpoint_")]
+            if not saves:
+                print("[No checkpoints found]")
+                return False
+            checkpoint_number = len(saves)
+        
+        save_file = os.path.join(SAVE_DIR, f"checkpoint_{checkpoint_number}.pkl")
+        
+        if not os.path.exists(save_file):
+            print(f"[Checkpoint {checkpoint_number} not found]")
+            return False
+        
+        try:
+            with open(save_file, 'rb') as f:
+                checkpoint_data = pickle.load(f)
+            
+            self.state = checkpoint_data["state"]
+            self.current_node = checkpoint_data["current_node"]
+            self.dm = DungeonMaster(self.state)  # Recreate DM with loaded state
+            
+            print(f"\n[📖 CHECKPOINT LOADED: {checkpoint_data['checkpoint_name']}]")
+            print(f"[Saved at: {checkpoint_data['timestamp']}]")
+            return True
+            
+        except Exception as e:
+            print(f"[Error loading checkpoint: {e}]")
+            return False
+    
+    def list_checkpoints(self):
+        """List all available checkpoints"""
+        if not os.path.exists(SAVE_DIR):
+            print("[No checkpoints saved yet]")
+            return
+        
+        saves = sorted([f for f in os.listdir(SAVE_DIR) if f.startswith("checkpoint_")])
+        if not saves:
+            print("[No checkpoints saved yet]")
+            return
+        
+        print("\n" + "="*60)
+        print("AVAILABLE CHECKPOINTS:")
+        for i, save_file in enumerate(saves, 1):
+            save_path = os.path.join(SAVE_DIR, save_file)
+            try:
+                with open(save_path, 'rb') as f:
+                    data = pickle.load(f)
+                print(f"{i}. {data['checkpoint_name']} - {data['timestamp']}")
+            except:
+                print(f"{i}. {save_file} (corrupted)")
+        print("="*60 + "\n")
+    
+    def check_time_pressure(self) -> Optional[str]:
+        """Check if player has run out of time in timed scenario"""
+        if not self.state.in_timed_scenario:
+            return None
+        
+        self.state.action_timer += 1
+        
+        if self.state.action_timer > self.state.time_limit:
+            # Player took too long - appropriate death
+            if "drown" in self.current_node or "water" in self.current_node or "flood" in self.current_node:
+                return "death_drowning"
+            elif "fire" in self.current_node or "burn" in self.current_node:
+                return "death_burning"
+            elif "search" in self.current_node:
+                return "death_drowning"  # Searching too long while drowning
+            else:
+                return "death_time_pressure"
+        
+        # Warning at halfway point
+        if self.state.action_timer == self.state.time_limit // 2:
+            print(f"\n⚠️  [TIME PRESSURE: You're running out of time!] ⚠️\n")
+        
+        return None
+    
+    def start_time_pressure(self, limit: int, scenario: str = ""):
+        """Start a timed scenario"""
+        self.state.in_timed_scenario = True
+        self.state.time_limit = limit
+        self.state.action_timer = 0
+        if scenario:
+            print(f"\n⏰ [TIME-SENSITIVE: {scenario}] ⏰\n")
+    
     def show_status(self):
         """Display current player status"""
         print("\n" + "="*60)
@@ -3710,9 +3989,36 @@ The dungeon claims another victim.""",
         print("Few lead to survival. Choose wisely.")
         print("\nGood luck. You'll need it.")
         print("="*60)
-        input("\nPress Enter to begin...")
         
-        self.current_node = "start"
+        # Check for existing saves
+        if os.path.exists(SAVE_DIR):
+            saves = [f for f in os.listdir(SAVE_DIR) if f.startswith("checkpoint_")]
+            if saves:
+                print("\n[Checkpoints detected]")
+                choice = input("Load checkpoint? (y/n): ").strip().lower()
+                if choice == 'y':
+                    self.list_checkpoints()
+                    try:
+                        cp_num = int(input("Enter checkpoint number: ").strip())
+                        if self.load_checkpoint(cp_num):
+                            print("\nContinuing from checkpoint...")
+                        else:
+                            print("\nStarting new game...")
+                            self.current_node = "start"
+                    except:
+                        print("\nStarting new game...")
+                        self.current_node = "start"
+                else:
+                    self.current_node = "start"
+            else:
+                self.current_node = "start"
+        else:
+            self.current_node = "start"
+        
+        if self.current_node == "start":
+            input("\nPress Enter to begin...")
+            # Start the drowning scenario with time pressure
+            self.start_time_pressure(5, "Water rising - you have limited time!")
         
         while True:
             # Check for automatic death conditions
@@ -3720,12 +4026,33 @@ The dungeon claims another victim.""",
             if death_node:
                 self.current_node = death_node
             
+            # Check time pressure
+            time_death = self.check_time_pressure()
+            if time_death:
+                self.current_node = time_death
+            
             # Handle restart
             if self.current_node == "RESTART":
                 print("\n\nRestarting game...")
+                print("1. Start from beginning")
+                print("2. Load checkpoint")
+                choice = input("> ").strip()
+                if choice == "2":
+                    self.list_checkpoints()
+                    try:
+                        cp_num = int(input("Enter checkpoint number: ").strip())
+                        if self.load_checkpoint(cp_num):
+                            continue
+                    except:
+                        pass
                 self.__init__()
                 self.current_node = "start"
+                self.start_time_pressure(5, "Water rising - you have limited time!")
                 continue
+            
+            # Auto-checkpoint at key nodes
+            if self.current_node in AUTO_CHECKPOINT_NODES and self.current_node != self.state.last_checkpoint_node:
+                self.create_checkpoint(f"Auto: {self.current_node}")
             
             # Get current node
             node = self.nodes.get(self.current_node)
@@ -3759,18 +4086,35 @@ The dungeon claims another victim.""",
             for i, choice in enumerate(node.choices, 1):
                 print(f"{i}. {choice['text']}")
             
+            # Add save option
+            print(f"{len(node.choices) + 1}. [Save Checkpoint]")
+            
             # Get player input
             retry_count = 0
             while retry_count < MAX_INPUT_RETRIES:
                 try:
                     choice_input = input("\n> ").strip()
                     choice_num = int(choice_input)
+                    
+                    # Check if save checkpoint option
+                    if choice_num == len(node.choices) + 1:
+                        checkpoint_name = input("Checkpoint name (or press Enter): ").strip()
+                        self.create_checkpoint(checkpoint_name if checkpoint_name else None)
+                        print("You can continue from this point later.\n")
+                        continue  # Don't consume a turn
+                    
                     if 1 <= choice_num <= len(node.choices):
                         chosen = node.choices[choice_num - 1]
+                        
+                        # End time pressure when escaping water
+                        if self.state.in_timed_scenario and "drainage" in chosen["next"]:
+                            self.state.in_timed_scenario = False
+                            print("\n[You escape the rising water!]\n")
+                        
                         self.current_node = chosen["next"]
                         break
                     else:
-                        print(f"Please enter a number between 1 and {len(node.choices)}")
+                        print(f"Please enter a number between 1 and {len(node.choices) + 1}")
                         retry_count += 1
                 except ValueError:
                     print("Please enter a valid number")
