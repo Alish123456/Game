@@ -2432,6 +2432,25 @@ The water is rising faster now. He's clearly enjoying watching you drown.""",
             ]
         )
         
+        self.nodes["curse_betrayer"] = StoryNode(
+            "curse_betrayer",
+            """You scream every curse you know at him. "May the gods damn you to the deepest pits! 
+May your soul burn for eternity! May everyone you love abandon you as you abandoned me!"
+
+The betrayer's face darkens with rage. "How DARE you!" He picks up a large rock.
+"Die screaming then, you worthless fool!" He hurls it down at your head!
+
+The rock crashes into the water near you—missing by inches but creating a huge splash.
+You go under, disoriented and choking. When you surface, gasping, he's gone.
+
+The water is at your chin now. His rage at least drove him away.""",
+            [
+                {"text": "Search the walls frantically", "next": "find_hidden_crack"},
+                {"text": "Dive for an underwater exit", "next": "dive_last_chance"},
+                {"text": "Float and hope for a miracle", "next": "death_drowning"}
+            ]
+        )
+        
         # New nodes for betrayer interaction (replaces guard nodes)
         self.nodes["jump_fail_drown"] = StoryNode(
             "jump_fail_drown",
