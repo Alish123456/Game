@@ -20,10 +20,18 @@ FIND_CHANCE_WITHOUT_LIGHT = 10
 MAX_INPUT_LENGTH = 500
 MAX_INPUT_RETRIES = 5
 
-# AI Configuration (Optional - falls back to rule-based if not configured)
+# AI Configuration (Optional - gracefully falls back if not available)
 USE_AI_COMBAT = os.getenv("USE_AI_COMBAT", "false").lower() == "true"
 AI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-AI_MODEL = os.getenv("AI_MODEL", "gpt-4")
+AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
+
+# Try to import OpenAI, but don't fail if not installed
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    USE_AI_COMBAT = False  # Automatically disable if not installed
 
 # Checkpoint Configuration
 SAVE_DIR = os.path.join(os.path.dirname(__file__), "saves")
@@ -1668,14 +1676,23 @@ but you don't look back. You've escaped but didn't finish it. It might recover."
         # Starting node - flooded cell
         self.nodes["start"] = StoryNode(
             "start",
-            """You awaken in cold, murky water that reaches your chest. 
-The last thing you remember is the betrayal—someone pushed you into this hole.
-Your head throbs with pain, and you feel a deep wound on your side.
-The water is rising slowly. The dungeon is pitch black, save for a faint 
-phosphorescent glow from the moss on the walls.
+            """You awaken in cold, murky water that reaches your chest.
 
-Your body aches. You're wounded, cold, and wet.
-The betrayer left you here to drown... but you survived. Barely.""",
+*Where...? What happened?*
+
+The memory hits you like a punch: the betrayal. Someone you trusted—pushed you into this hole.
+*They left me to die.* 
+
+Your head throbs. Deep wound on your side, bleeding slowly. The water is rising.
+Pitch black except for faint moss-glow on stone walls.
+
+*Cold. So cold.* Your teeth chatter. Every breath hurts.
+
+*Think. Stay calm. Drowning here proves them right.*
+
+You grit your teeth. *No. I survive. Then I make them pay.*
+
+The water rises another inch. Time is running out.""",
             [
                 {"text": "Search the murky water for anything useful", "next": "search_cell_water"},
                 {"text": "Feel along the walls for a way out", "next": "feel_walls"},
@@ -1687,28 +1704,71 @@ The betrayer left you here to drown... but you survived. Barely.""",
         
         self.nodes["search_cell_water"] = StoryNode(
             "search_cell_water",
-            """You plunge your hands into the frigid water, feeling around blindly.
-Your fingers brush against something... metal. A rusted shackle attached to a chain.
-Then something else—soft, decaying. A corpse floats just beneath the surface.
-The stench makes you gag.""",
+            """You plunge your hands into the frigid water.
+
+*Something here... has to be...*
+
+Metal. A rusted shackle. Chain attached. *A prisoner was here before.*
+
+Then—something soft. Yielding. Decaying.
+
+A corpse. Right beneath the surface.
+
+*Oh god.* The stench hits you. You gag, fighting not to vomit.
+
+*Another victim. Someone who didn't escape.* The thought chills you worse than the water.
+
+*But they might have... something useful.* Survival over squeamishness.""",
             [
-                {"text": "Search the corpse thoroughly", "next": "search_corpse"},
-                {"text": "Take only the metal chain and leave", "next": "take_chain_death"},
-                {"text": "Recoil in horror and back away", "next": "recoil_panic_death"},
-                {"text": "Use the chain as a weapon", "next": "chain_weapon_death"}
+                {"text": "Search the corpse thoroughly despite the horror", "next": "search_corpse"},
+                {"text": "Just grab the chain and get away from the body", "next": "take_chain_death"},
+                {"text": "Recoil—this is too much", "next": "recoil_panic_death"},
+                {"text": "Take the chain as a weapon", "next": "chain_weapon_death"}
             ]
         )
         
         self.nodes["search_corpse"] = StoryNode(
             "search_corpse",
             """Fighting back nausea, you pat down the waterlogged corpse.
-The body has been here for weeks, bloated and partially eaten by rats.
-You find a small tinderbox—miraculously, it's in a sealed leather pouch.
-You also find 3 copper coins and a moldy piece of bread.""",
+
+*Weeks dead. Bloated. Partially eaten.*
+
+Your hands find items:
+- A tinderbox in a sealed leather pouch. *Thank god. Fire means survival.*
+- 3 copper coins. *Worthless now, but...*
+- Moldy bread. *Looks toxic.*
+
+*Should I take it all? Or just what I need?*
+
+The water has risen to your shoulders now. Every second counts.""",
             [
-                {"text": "Take everything and continue", "next": "after_corpse_loot"},
-                {"text": "Take only the tinderbox", "next": "tinderbox_only"},
-                {"text": "Eat the moldy bread immediately", "next": "eat_moldy_bread"}
+                {"text": "Take only the tinderbox (smart—save time)", "next": "tinderbox_only"},
+                {"text": "Take tinderbox and coins (reasonable)", "next": "after_corpse_loot"},
+                {"text": "Take EVERYTHING including moldy bread (greedy)", "next": "greedy_loot_corpse"},
+                {"text": "Actually... eat the bread NOW (desperate/foolish)", "next": "eat_moldy_bread"}
+            ]
+        )
+        
+        # NEW: Greed consequence path
+        self.nodes["greedy_loot_corpse"] = StoryNode(
+            "greedy_loot_corpse",
+            """You stuff everything into your pockets. Tinderbox, coins, even the moldy bread.
+
+*Never know what might be useful,* you rationalize.
+
+But searching so thoroughly takes precious time. The water is at your chin now.
+
+Worse—as you disturb the corpse too much, you hear something in the darkness.
+
+A wet, dragging sound. Getting closer.
+
+*Oh no. Something heard me.*
+
+The corpse wasn't just floating here—it was being SAVED. For later.""",
+            [
+                {"text": "Grab what you can and RUN for exit NOW", "next": "panicked_exit_search"},
+                {"text": "Hide in the water, stay still", "next": "hide_from_creature"},
+                {"text": "Search desperately for way out", "next": "desperate_search_consequence"}
             ]
         )
         
@@ -1729,11 +1789,131 @@ Your vision blurs as foam forms at your lips...""",
         self.nodes["tinderbox_only"] = StoryNode(
             "tinderbox_only",
             """You take only the tinderbox, leaving the questionable food and coins.
-The tinderbox might save your life if you can dry it and find fuel.
-The water continues to rise. You need to move now.""",
+
+*Just what I need. Nothing more.*
+
+Smart. The tinderbox might save your life if you find fuel.
+The water continues to rise. Time to move.""",
             [
                 {"text": "Search for an exit urgently", "next": "search_exit_urgent"},
                 {"text": "Dive underwater to find a way out", "next": "underwater_passage"}
+            ]
+        )
+        
+        # Greed consequence nodes
+        self.nodes["panicked_exit_search"] = StoryNode(
+            "panicked_exit_search",
+            """You MOVE! Splashing through the water, feeling frantically along walls!
+
+The dragging sound is RIGHT BEHIND YOU!
+
+Your hand finds something—a metal grate! You yank at it desperately!
+
+It's stuck but—THERE! It gives way!
+
+You squeeze through just as something cold and slimy brushes your leg!
+
+You're through! You slam the grate shut behind you. You hear it testing the bars.
+
+*Too close. Way too close.*
+
+You're in a drainage tunnel. Filthy but dry. Safe for now.""",
+            [
+                {"text": "Catch your breath, then continue", "next": "drainage_tunnel"},
+                {"text": "Look back at what chased you", "next": "glimpse_creature"}
+            ]
+        )
+        
+        self.nodes["hide_from_creature"] = StoryNode(
+            "hide_from_creature",
+            """You sink into the water, barely keeping your nose above surface.
+
+The dragging sound circles. Closer. Closer.
+
+Something massive passes right next to you. You feel displacement in the water.
+
+*Don't breathe. Don't move.*
+
+It pauses. You hear wet sniffing sounds.
+
+Then... it moves away. Back to its corpse.
+
+You wait. Minutes feel like hours. Finally—silence.
+
+You need to escape NOW while it's distracted.""",
+            [
+                {"text": "Slip away quietly to find exit", "next": "stealthy_exit_search"},
+                {"text": "Move fast before it comes back", "next": "panicked_exit_search"}
+            ]
+        )
+        
+        self.nodes["desperate_search_consequence"] = StoryNode(
+            "desperate_search_consequence",
+            """You splash around desperately, hands frantic on the stone walls!
+
+The creature ROARS! It knows where you are!
+
+Your fingers find a crack—a grate—you PULL—
+
+TOO LATE!
+
+Something massive grabs your leg! PULLS YOU UNDER!
+
+You see it in the phosphorescent glow—a bloated, corpse-like thing with too many limbs!
+
+You scream. Water fills your lungs.
+
+CAUSE OF DEATH: Taken by the Corpse Eater
+SURVIVAL TIME: 4 minutes
+
+💀 LESSON LEARNED: Greed kills. Taking EVERYTHING triggered the creature.
+   Option 2 (tinderbox + coins) was optimal. Option 3 (everything) = death.
+   When looting, be efficient - not greedy. Time matters in this dungeon!
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["stealthy_exit_search"] = StoryNode(
+            "stealthy_exit_search",
+            """Moving with utmost care, you feel along the walls.
+
+*Quiet. So quiet.*
+
+Your hand finds it—a drainage grate. You gently, slowly, pull it open.
+
+It creaks slightly. You freeze.
+
+The creature doesn't react. Still feeding.
+
+You slip through. Close it carefully behind you.
+
+*Made it. Barely.*
+
+Drainage tunnel ahead. You're safe. For now.""",
+            [
+                {"text": "Continue forward", "next": "drainage_tunnel"}
+            ]
+        )
+        
+        self.nodes["glimpse_creature"] = StoryNode(
+            "glimpse_creature",
+            """You glance back through the grate.
+
+In the dim moss-light, you see it:
+
+A bloated, humanoid mass. Multiple arms grafted onto a corpse-body.
+Eyes... so many eyes. All milky white. All watching the water.
+
+*The Corpse Eater.* You've heard whispers of it.
+
+It's still there. Guarding its food supply.
+
+*If I'd stayed any longer...*
+
+You shudder and turn away. The tunnel awaits.""",
+            [
+                {"text": "Move deeper into the tunnel", "next": "drainage_tunnel"}
             ]
         )
         
@@ -1941,11 +2121,27 @@ It's still dark, but you're alive. The tunnel slopes upward ahead.""",
         
         self.nodes["drainage_tunnel"] = StoryNode(
             "drainage_tunnel",
-            """You crawl through the filthy tunnel. Rats scatter as you advance.
-The tunnel is barely wide enough for you to squeeze through.
-After several minutes, you see a dim light ahead—not sunlight, but torchlight!
+            """You crawl through the filthy tunnel. Rats scatter. Barely wide enough.
 
-You emerge into a larger corridor. Stone walls, ancient and covered in strange symbols.
+After minutes that feel like hours, you see light ahead—torchlight!
+
+*Out! Finally!*
+
+You emerge into a larger corridor. Stone walls covered in strange symbols.
+
+*The dungeon proper. Not free... but alive.*
+
+You hear distant sounds: dripping water, scraping stone, and... a scream?
+
+*Others are here. Or were.*
+
+The air is different here. Warmer. There's a smell—sulfur? Decay? Both?
+
+*The walls are warm.* You touch the stone. *Something ahead. Fire maybe?*
+
+Your side wound throbs. You're still in danger. But you survived the cell.
+
+*Step one: Don't drown. Check. Step two: Don't die here.*
 This is the dungeon proper. You hear distant sounds: dripping water, 
 something scraping against stone, and... was that a scream?
 
@@ -1998,21 +2194,41 @@ The smell is stronger now. Definitely sulfur mixed with rot.""",
         
         self.nodes["blood_trail"] = StoryNode(
             "blood_trail",
-            """You follow the blood trail. It leads to a gruesome scene:
-A partially devoured body lies against the wall. Fresh. The flesh is still warm.
-The victim's eyes are wide open in terror—they died screaming.
-Standing over it is a creature—hunched, humanoid but wrong. Its skin is pale and
-stretched tight over elongated bones. It turns to face you with milky white eyes.
+            """The blood trail leads you around a corner.
 
-A GHOUL. It hisses, blood dripping from its mouth.
-It's between you and the passage beyond.
+*Fresh. Still wet.*
 
-You notice: the ghoul's skin is dry, cracked. It flinches slightly from your torch light.""",
+Then you see it:
+
+A body. Partially devoured. FRESH—flesh still warm. Eyes wide, frozen in terror.
+
+*They died minutes ago. Screaming.*
+
+Standing over the corpse—
+
+*Oh god.*
+
+Hunched. Humanoid but WRONG. Pale skin stretched over elongated bones.
+It turns. Milky white eyes lock onto you.
+
+*A ghoul.*
+
+Your torch wavers in your trembling hand. The creature hisses. Blood drips from its mouth.
+
+*It's between me and the way forward. Can't go back. Have to...*
+
+Wait. You notice something: Its skin—dry, cracked. And when your torch moves...
+
+*It flinched. From the light.*
+
+*Fire. It fears fire.*
+
+Your grip tightens on the torch. This is it. Fight or die.""",
             [
-                {"text": "Fight the ghoul with the torch", "next": "fight_ghoul_torch"},
-                {"text": "Try to scare it away with fire", "next": "scare_ghoul_fire"},
-                {"text": "Run back the way you came", "next": "run_from_ghoul"},
-                {"text": "Throw something to distract it and slip past", "next": "distract_ghoul"}
+                {"text": "Attack with the torch - exploit the fire weakness!", "next": "fight_ghoul_torch"},
+                {"text": "Wave the torch threateningly to scare it", "next": "scare_ghoul_fire"},
+                {"text": "Panic and run back", "next": "run_from_ghoul"},
+                {"text": "Throw something to distract it", "next": "distract_ghoul"}
             ]
         )
         
@@ -3568,18 +3784,31 @@ He points his spear toward the sewer passage. His patience is exhausted.""",
         # Add nodes for alternate paths
         self.nodes["examine_symbols"] = StoryNode(
             "examine_symbols",
-            """You study the strange symbols carved into the stone walls.
-They're ancient—older than the dungeon itself. The style is familiar...
-These are warning glyphs. You can make out fragments of meaning:
+            """You study the strange symbols carved deep into stone.
 
-"...beneath... harvester of flesh... door sealed... seven keys..."
+*Ancient. Older than the dungeon itself.*
 
-The symbols seem to glow faintly with that same phosphorescent light.
-There's more here, but it would take time to decipher fully.""",
+The style is familiar from old texts you've seen. Warning glyphs.
+
+You trace them with your eyes, deciphering fragments:
+
+"...beneath... HARVESTER OF FLESH... door sealed... SEVEN KEYS..."
+
+*The Harvester. I've heard whispers of it.*
+
+More symbols: "...fear feeds... eyes many... fire cleanses..."
+
+*So ghouls fear fire. Good to know.*
+
+And finally: "...trust not the Overseer... experiments corrupt..."
+
+*This place has secrets. Dark ones.*
+
+You've learned valuable information. But it took time.""",
             [
-                {"text": "Continue examining symbols closely", "next": "decipher_symbols"},
-                {"text": "Move on—no time for archaeology", "next": "torch_corridor"},
-                {"text": "Trace the symbols with your finger", "next": "touch_symbols"}
+                {"text": "Study more—knowledge is power", "next": "decipher_symbols"},
+                {"text": "Enough—move forward with what you learned", "next": "torch_corridor"},
+                {"text": "Touch the symbols to see if they react", "next": "touch_symbols"}
             ]
         )
         
@@ -4010,13 +4239,27 @@ They're right behind you!""",
         
         self.nodes["torch_chaos_escape"] = StoryNode(
             "torch_chaos_escape",
-            """You throw your torch at the guards! It lands in spilled oil on the table!
+            """A wild idea strikes you.
 
-WHOOSH! Fire erupts! The guards scramble!
+*The table—there's spilled oil!*
 
-You run through the smoke to the far exit!
+Without thinking, you HURL your torch at the guards!
 
-But now you're in darkness... without a torch...""",
+It arcs through the air—lands perfectly in the oil slick—
+
+WHOOSH!
+
+*YES!*
+
+Flames ERUPT across the table! The guards scream, scrambling!
+
+You don't hesitate. You RUN through the smoke to the far exit!
+
+*Crazy plan worked!*
+
+Then reality hits: You're in darkness now. No torch.
+
+*Worth it. Had to be done.*""",
             [
                 {"text": "Feel your way forward", "next": "dark_escape_path"},
                 {"text": "Wait for eyes to adjust", "next": "dark_escape_path"}
@@ -4103,6 +4346,220 @@ You won. Completely.
         
         self.nodes["restart"] = "RESTART"
     
+
+        # ===== AUTO-GENERATED PLACEHOLDERS (211 nodes) =====
+        # These prevent crashes until paths are fully developed
+        self.nodes["admit_no_gold"] = StoryNode("admit_no_gold", "[Under Development: Admit No Gold]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["ally_guard"] = StoryNode("ally_guard", "[Under Development: Ally Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["ambush_setup"] = StoryNode("ambush_setup", "[Under Development: Ambush Setup]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["apologize_guard"] = StoryNode("apologize_guard", "[Under Development: Apologize Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["approach_dark_figure"] = StoryNode("approach_dark_figure", "[Under Development: Approach Dark Figure]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["approach_guard_talk"] = StoryNode("approach_guard_talk", "[Under Development: Approach Guard Talk]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["approach_voice"] = StoryNode("approach_voice", "[Under Development: Approach Voice]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["ask_help_escape"] = StoryNode("ask_help_escape", "[Under Development: Ask Help Escape]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["ask_identity"] = StoryNode("ask_identity", "[Under Development: Ask Identity]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["assess_situation"] = StoryNode("assess_situation", "[Under Development: Assess Situation]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["attack_dark_figure"] = StoryNode("attack_dark_figure", "[Under Development: Attack Dark Figure]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["attack_emotional_guard"] = StoryNode("attack_emotional_guard", "[Under Development: Attack Emotional Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["attack_guard_first"] = StoryNode("attack_guard_first", "[Under Development: Attack Guard First]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["attack_sleeping_guard"] = StoryNode("attack_sleeping_guard", "[Under Development: Attack Sleeping Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["avoid_overseer"] = StoryNode("avoid_overseer", "[Under Development: Avoid Overseer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["away_from_voice"] = StoryNode("away_from_voice", "[Under Development: Away From Voice]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["back_away_creature"] = StoryNode("back_away_creature", "[Under Development: Back Away Creature]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["back_away_dark"] = StoryNode("back_away_dark", "[Under Development: Back Away Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["back_up_stairs"] = StoryNode("back_up_stairs", "[Under Development: Back Up Stairs]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["backstab_overseer"] = StoryNode("backstab_overseer", "[Under Development: Backstab Overseer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["bandage_after_clean"] = StoryNode("bandage_after_clean", "[Under Development: Bandage After Clean]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["bandage_wound_tunnel"] = StoryNode("bandage_wound_tunnel", "[Under Development: Bandage Wound Tunnel]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["bandage_wounds_cloth"] = StoryNode("bandage_wounds_cloth", "[Under Development: Bandage Wounds Cloth]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["bandaged_continue"] = StoryNode("bandaged_continue", "[Under Development: Bandaged Continue]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["barricade_and_escape"] = StoryNode("barricade_and_escape", "[Under Development: Barricade And Escape]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["barricade_door"] = StoryNode("barricade_door", "[Under Development: Barricade Door]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["betray_surrender"] = StoryNode("betray_surrender", "[Under Development: Betray Surrender]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["between_walls_passage"] = StoryNode("between_walls_passage", "[Under Development: Between Walls Passage]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["bite_guard"] = StoryNode("bite_guard", "[Under Development: Bite Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["blind_run"] = StoryNode("blind_run", "[Under Development: Blind Run]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["call_help_sewer"] = StoryNode("call_help_sewer", "[Under Development: Call Help Sewer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["careful_sewer"] = StoryNode("careful_sewer", "[Under Development: Careful Sewer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["catch_breath"] = StoryNode("catch_breath", "[Under Development: Catch Breath]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["catch_rock"] = StoryNode("catch_rock", "[Under Development: Catch Rock]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["cautious_green_approach"] = StoryNode("cautious_green_approach", "[Under Development: Cautious Green Approach]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["center_chamber_passage"] = StoryNode("center_chamber_passage", "[Under Development: Center Chamber Passage]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["chain_to_torch_finish"] = StoryNode("chain_to_torch_finish", "[Under Development: Chain To Torch Finish]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["check_inside_maiden"] = StoryNode("check_inside_maiden", "[Under Development: Check Inside Maiden]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["check_inventory_swim"] = StoryNode("check_inventory_swim", "[Under Development: Check Inventory Swim]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["choke_guard"] = StoryNode("choke_guard", "[Under Development: Choke Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["circle_pit"] = StoryNode("circle_pit", "[Under Development: Circle Pit]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["climb_cistern_ladder"] = StoryNode("climb_cistern_ladder", "[Under Development: Climb Cistern Ladder]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["climb_pit_chains"] = StoryNode("climb_pit_chains", "[Under Development: Climb Pit Chains]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["continue_in_dark"] = StoryNode("continue_in_dark", "[Under Development: Continue In Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["corridor_fight"] = StoryNode("corridor_fight", "[Under Development: Corridor Fight]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["cover_from_overseer"] = StoryNode("cover_from_overseer", "[Under Development: Cover From Overseer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["create_combat_distance"] = StoryNode("create_combat_distance", "[Under Development: Create Combat Distance]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["create_distance"] = StoryNode("create_distance", "[Under Development: Create Distance]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["deeper_descent"] = StoryNode("deeper_descent", "[Under Development: Deeper Descent]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["defend_wait"] = StoryNode("defend_wait", "[Under Development: Defend Wait]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["defensive_ghoul_fight"] = StoryNode("defensive_ghoul_fight", "[Under Development: Defensive Ghoul Fight]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["demand_guard_yield"] = StoryNode("demand_guard_yield", "[Under Development: Demand Guard Yield]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["desperate_gambit"] = StoryNode("desperate_gambit", "[Under Development: Desperate Gambit]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["desperate_ghoul_fight"] = StoryNode("desperate_ghoul_fight", "[Under Development: Desperate Ghoul Fight]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["disarm_guard"] = StoryNode("disarm_guard", "[Under Development: Disarm Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["distract_feeding_ghoul"] = StoryNode("distract_feeding_ghoul", "[Under Development: Distract Feeding Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["dive_from_ceiling"] = StoryNode("dive_from_ceiling", "[Under Development: Dive From Ceiling]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["dodge_rock"] = StoryNode("dodge_rock", "[Under Development: Dodge Rock]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["drink_spirits"] = StoryNode("drink_spirits", "[Under Development: Drink Spirits]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["drop_from_ledge"] = StoryNode("drop_from_ledge", "[Under Development: Drop From Ledge]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["drop_into_sewer"] = StoryNode("drop_into_sewer", "[Under Development: Drop Into Sewer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["drop_torch_fall"] = StoryNode("drop_torch_fall", "[Under Development: Drop Torch Fall]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["eat_beetles"] = StoryNode("eat_beetles", "[Under Development: Eat Beetles]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["eat_mushrooms"] = StoryNode("eat_mushrooms", "[Under Development: Eat Mushrooms]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["endure_and_climb"] = StoryNode("endure_and_climb", "[Under Development: Endure And Climb]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["equip_guard_gear"] = StoryNode("equip_guard_gear", "[Under Development: Equip Guard Gear]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["escape_weak_ghoul"] = StoryNode("escape_weak_ghoul", "[Under Development: Escape Weak Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["examine_chamber_carvings"] = StoryNode("examine_chamber_carvings", "[Under Development: Examine Chamber Carvings]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["examine_door_symbols"] = StoryNode("examine_door_symbols", "[Under Development: Examine Door Symbols]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["examine_iron_maiden"] = StoryNode("examine_iron_maiden", "[Under Development: Examine Iron Maiden]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["exit_storage_room"] = StoryNode("exit_storage_room", "[Under Development: Exit Storage Room]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["face_guards"] = StoryNode("face_guards", "[Under Development: Face Guards]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["fall_and_roll"] = StoryNode("fall_and_roll", "[Under Development: Fall And Roll]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["far_door_exit"] = StoryNode("far_door_exit", "[Under Development: Far Door Exit]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["feel_for_weapon"] = StoryNode("feel_for_weapon", "[Under Development: Feel For Weapon]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["feel_forward_dark"] = StoryNode("feel_forward_dark", "[Under Development: Feel Forward Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["fight_blind"] = StoryNode("fight_blind", "[Under Development: Fight Blind]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["fight_overseer"] = StoryNode("fight_overseer", "[Under Development: Fight Overseer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["fight_three_guards"] = StoryNode("fight_three_guards", "[Under Development: Fight Three Guards]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["final_scream"] = StoryNode("final_scream", "[Under Development: Final Scream]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["find_defensive_spot"] = StoryNode("find_defensive_spot", "[Under Development: Find Defensive Spot]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["find_wall_opening"] = StoryNode("find_wall_opening", "[Under Development: Find Wall Opening]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["finish_ghoul"] = StoryNode("finish_ghoul", "[Under Development: Finish Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["finish_wounded_guard"] = StoryNode("finish_wounded_guard", "[Under Development: Finish Wounded Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["flee_mass_grave"] = StoryNode("flee_mass_grave", "[Under Development: Flee Mass Grave]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["flee_murder_scene"] = StoryNode("flee_murder_scene", "[Under Development: Flee Murder Scene]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["follow_breeze"] = StoryNode("follow_breeze", "[Under Development: Follow Breeze]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["follow_guard"] = StoryNode("follow_guard", "[Under Development: Follow Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["force_iron_door"] = StoryNode("force_iron_door", "[Under Development: Force Iron Door]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["freeze_darkness"] = StoryNode("freeze_darkness", "[Under Development: Freeze Darkness]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["freeze_guard"] = StoryNode("freeze_guard", "[Under Development: Freeze Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["futile_dry"] = StoryNode("futile_dry", "[Under Development: Futile Dry]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["get_metal_file"] = StoryNode("get_metal_file", "[Under Development: Get Metal File]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["grab_fallen_weapon"] = StoryNode("grab_fallen_weapon", "[Under Development: Grab Fallen Weapon]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["grab_key_quick"] = StoryNode("grab_key_quick", "[Under Development: Grab Key Quick]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["grate_open_continue"] = StoryNode("grate_open_continue", "[Under Development: Grate Open Continue]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["guard_throat_attack"] = StoryNode("guard_throat_attack", "[Under Development: Guard Throat Attack]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["harsh_truth"] = StoryNode("harsh_truth", "[Under Development: Harsh Truth]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["headbutt_guard"] = StoryNode("headbutt_guard", "[Under Development: Headbutt Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["hide_from_guard"] = StoryNode("hide_from_guard", "[Under Development: Hide From Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["hide_guard_body"] = StoryNode("hide_guard_body", "[Under Development: Hide Guard Body]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["hide_in_tunnel"] = StoryNode("hide_in_tunnel", "[Under Development: Hide In Tunnel]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["hide_near_guard"] = StoryNode("hide_near_guard", "[Under Development: Hide Near Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["hide_success_ghoul"] = StoryNode("hide_success_ghoul", "[Under Development: Hide Success Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["investigate_door"] = StoryNode("investigate_door", "[Under Development: Investigate Door]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["leave_guard_alone"] = StoryNode("leave_guard_alone", "[Under Development: Leave Guard Alone]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["leave_vial"] = StoryNode("leave_vial", "[Under Development: Leave Vial]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["left_chamber_passage"] = StoryNode("left_chamber_passage", "[Under Development: Left Chamber Passage]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["left_corridor"] = StoryNode("left_corridor", "[Under Development: Left Corridor]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["left_from_ghoul"] = StoryNode("left_from_ghoul", "[Under Development: Left From Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["let_ghoul_flee"] = StoryNode("let_ghoul_flee", "[Under Development: Let Ghoul Flee]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["lie_about_gold"] = StoryNode("lie_about_gold", "[Under Development: Lie About Gold]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["lie_to_guard"] = StoryNode("lie_to_guard", "[Under Development: Lie To Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["light_lower_level"] = StoryNode("light_lower_level", "[Under Development: Light Lower Level]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["listen_lower_level"] = StoryNode("listen_lower_level", "[Under Development: Listen Lower Level]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["listen_through_walls"] = StoryNode("listen_through_walls", "[Under Development: Listen Through Walls]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["look_up_ceiling"] = StoryNode("look_up_ceiling", "[Under Development: Look Up Ceiling]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["loot_guard_body"] = StoryNode("loot_guard_body", "[Under Development: Loot Guard Body]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["lower_level_dark"] = StoryNode("lower_level_dark", "[Under Development: Lower Level Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["moral_reflection"] = StoryNode("moral_reflection", "[Under Development: Moral Reflection]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["move_for_warmth"] = StoryNode("move_for_warmth", "[Under Development: Move For Warmth]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["navigate_grave"] = StoryNode("navigate_grave", "[Under Development: Navigate Grave]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["past_iron_maiden"] = StoryNode("past_iron_maiden", "[Under Development: Past Iron Maiden]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["play_dead"] = StoryNode("play_dead", "[Under Development: Play Dead]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["play_dead_ceiling"] = StoryNode("play_dead_ceiling", "[Under Development: Play Dead Ceiling]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["pray_for_dead"] = StoryNode("pray_for_dead", "[Under Development: Pray For Dead]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["press_emotion"] = StoryNode("press_emotion", "[Under Development: Press Emotion]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["promise_save_family"] = StoryNode("promise_save_family", "[Under Development: Promise Save Family]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["pull_guard_down"] = StoryNode("pull_guard_down", "[Under Development: Pull Guard Down]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["quick_hide"] = StoryNode("quick_hide", "[Under Development: Quick Hide]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["read_journal_more"] = StoryNode("read_journal_more", "[Under Development: Read Journal More]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["refill_water"] = StoryNode("refill_water", "[Under Development: Refill Water]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["remorse_guard"] = StoryNode("remorse_guard", "[Under Development: Remorse Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["repair_elevator"] = StoryNode("repair_elevator", "[Under Development: Repair Elevator]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["reread_note"] = StoryNode("reread_note", "[Under Development: Reread Note]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["resist_eating"] = StoryNode("resist_eating", "[Under Development: Resist Eating]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["rest_chamber"] = StoryNode("rest_chamber", "[Under Development: Rest Chamber]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["rest_in_dark"] = StoryNode("rest_in_dark", "[Under Development: Rest In Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["rest_in_storage"] = StoryNode("rest_in_storage", "[Under Development: Rest In Storage]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["rest_longer"] = StoryNode("rest_longer", "[Under Development: Rest Longer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["rest_on_ledge"] = StoryNode("rest_on_ledge", "[Under Development: Rest On Ledge]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["right_chamber_passage"] = StoryNode("right_chamber_passage", "[Under Development: Right Chamber Passage]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["right_corridor"] = StoryNode("right_corridor", "[Under Development: Right Corridor]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["right_from_ghoul"] = StoryNode("right_from_ghoul", "[Under Development: Right From Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["risk_rest"] = StoryNode("risk_rest", "[Under Development: Risk Rest]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_back_tunnel"] = StoryNode("run_back_tunnel", "[Under Development: Run Back Tunnel]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_from_darkness"] = StoryNode("run_from_darkness", "[Under Development: Run From Darkness]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_from_escort"] = StoryNode("run_from_escort", "[Under Development: Run From Escort]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_from_hiding"] = StoryNode("run_from_hiding", "[Under Development: Run From Hiding]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_from_waking_guard"] = StoryNode("run_from_waking_guard", "[Under Development: Run From Waking Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_from_wounded_guard"] = StoryNode("run_from_wounded_guard", "[Under Development: Run From Wounded Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_insane"] = StoryNode("run_insane", "[Under Development: Run Insane]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["run_to_torch"] = StoryNode("run_to_torch", "[Under Development: Run To Torch]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["rush_back_bundle"] = StoryNode("rush_back_bundle", "[Under Development: Rush Back Bundle]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["scare_creature"] = StoryNode("scare_creature", "[Under Development: Scare Creature]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_antidote"] = StoryNode("search_antidote", "[Under Development: Search Antidote]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_cistern"] = StoryNode("search_cistern", "[Under Development: Search Cistern]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_for_medicine"] = StoryNode("search_for_medicine", "[Under Development: Search For Medicine]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_for_water"] = StoryNode("search_for_water", "[Under Development: Search For Water]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_guardroom"] = StoryNode("search_guardroom", "[Under Development: Search Guardroom]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_mass_grave"] = StoryNode("search_mass_grave", "[Under Development: Search Mass Grave]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_more_food"] = StoryNode("search_more_food", "[Under Development: Search More Food]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_more_symbols"] = StoryNode("search_more_symbols", "[Under Development: Search More Symbols]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_service_tunnel"] = StoryNode("search_service_tunnel", "[Under Development: Search Service Tunnel]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_storage_room"] = StoryNode("search_storage_room", "[Under Development: Search Storage Room]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_sun_landing"] = StoryNode("search_sun_landing", "[Under Development: Search Sun Landing]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["search_trap_mechanism"] = StoryNode("search_trap_mechanism", "[Under Development: Search Trap Mechanism]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["side_passage_straight"] = StoryNode("side_passage_straight", "[Under Development: Side Passage Straight]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["silent_retreat"] = StoryNode("silent_retreat", "[Under Development: Silent Retreat]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["sneak_guard_room"] = StoryNode("sneak_guard_room", "[Under Development: Sneak Guard Room]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["sneak_past_ghoul"] = StoryNode("sneak_past_ghoul", "[Under Development: Sneak Past Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["solve_door_puzzle"] = StoryNode("solve_door_puzzle", "[Under Development: Solve Door Puzzle]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["stay_frozen"] = StoryNode("stay_frozen", "[Under Development: Stay Frozen]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["stay_still_dark"] = StoryNode("stay_still_dark", "[Under Development: Stay Still Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["steal_key_stealth"] = StoryNode("steal_key_stealth", "[Under Development: Steal Key Stealth]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["sterilize_wound"] = StoryNode("sterilize_wound", "[Under Development: Sterilize Wound]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["stop_and_fight_guard"] = StoryNode("stop_and_fight_guard", "[Under Development: Stop And Fight Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["strangle_ghoul_death"] = StoryNode("strangle_ghoul_death", "[Under Development: Strangle Ghoul Death]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["strike_blind"] = StoryNode("strike_blind", "[Under Development: Strike Blind]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["study_map"] = StoryNode("study_map", "[Under Development: Study Map]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["surprise_attack_ghoul"] = StoryNode("surprise_attack_ghoul", "[Under Development: Surprise Attack Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["surprise_attack_guard"] = StoryNode("surprise_attack_guard", "[Under Development: Surprise Attack Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["surprise_guard_room"] = StoryNode("surprise_guard_room", "[Under Development: Surprise Guard Room]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["tackle_guard"] = StoryNode("tackle_guard", "[Under Development: Tackle Guard]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["take_journal_move"] = StoryNode("take_journal_move", "[Under Development: Take Journal Move]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["take_mysterious_vial"] = StoryNode("take_mysterious_vial", "[Under Development: Take Mysterious Vial]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["take_rock_hit"] = StoryNode("take_rock_hit", "[Under Development: Take Rock Hit]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["talk_during_combat"] = StoryNode("talk_during_combat", "[Under Development: Talk During Combat]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["talk_overseer"] = StoryNode("talk_overseer", "[Under Development: Talk Overseer]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["talk_to_ghoul"] = StoryNode("talk_to_ghoul", "[Under Development: Talk To Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["tend_combat_wounds"] = StoryNode("tend_combat_wounds", "[Under Development: Tend Combat Wounds]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["tend_leg_injury"] = StoryNode("tend_leg_injury", "[Under Development: Tend Leg Injury]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["test_pit_depth"] = StoryNode("test_pit_depth", "[Under Development: Test Pit Depth]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["throw_sword_run"] = StoryNode("throw_sword_run", "[Under Development: Throw Sword Run]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["torch_sneak_attack"] = StoryNode("torch_sneak_attack", "[Under Development: Torch Sneak Attack]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["torch_throw_run"] = StoryNode("torch_throw_run", "[Under Development: Torch Throw Run]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["trap_ghoul"] = StoryNode("trap_ghoul", "[Under Development: Trap Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["trap_location"] = StoryNode("trap_location", "[Under Development: Trap Location]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["trap_pursuers"] = StoryNode("trap_pursuers", "[Under Development: Trap Pursuers]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["trigger_traps_safely"] = StoryNode("trigger_traps_safely", "[Under Development: Trigger Traps Safely]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["tunnel_downward"] = StoryNode("tunnel_downward", "[Under Development: Tunnel Downward]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["tunnel_trap"] = StoryNode("tunnel_trap", "[Under Development: Tunnel Trap]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["tunnel_upward"] = StoryNode("tunnel_upward", "[Under Development: Tunnel Upward]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["use_healing_potion"] = StoryNode("use_healing_potion", "[Under Development: Use Healing Potion]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["use_tinderbox_dark"] = StoryNode("use_tinderbox_dark", "[Under Development: Use Tinderbox Dark]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["wait_for_footsteps"] = StoryNode("wait_for_footsteps", "[Under Development: Wait For Footsteps]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["wait_guards_leave"] = StoryNode("wait_guards_leave", "[Under Development: Wait Guards Leave]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["wait_in_bones"] = StoryNode("wait_in_bones", "[Under Development: Wait In Bones]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["wait_in_trophy_room"] = StoryNode("wait_in_trophy_room", "[Under Development: Wait In Trophy Room]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["wall_slam_ghoul"] = StoryNode("wall_slam_ghoul", "[Under Development: Wall Slam Ghoul]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
+        self.nodes["warm_yourself"] = StoryNode("warm_yourself", "[Under Development: Warm Yourself]\n\nThis path is not yet complete. Returning to safe area.", [{"text": "Continue", "next": "drainage_tunnel"}])
     def create_checkpoint(self, checkpoint_name: str = None):
         """Create a checkpoint at current state"""
         if not os.path.exists(SAVE_DIR):
@@ -4539,6 +4996,72 @@ You won. Completely.
                 self.current_node = self.handle_custom_action(prev_node)
                 continue
             
+            # FORCE AI COMBAT - If node has combat flag, enter combat loop
+            if hasattr(node, 'combat') and node.combat and USE_AI_COMBAT:
+                print("\n" + "="*60)
+                print("⚔️  COMBAT INITIATED!")
+                print("="*60)
+                print(node.description)
+                print("\n[AI Combat Mode - Describe your actions until death or victory]")
+                print("="*60)
+                
+                # Combat loop - no choices, only custom actions
+                in_combat = True
+                combat_rounds = 0
+                while in_combat and combat_rounds < 20:  # Max 20 rounds
+                    combat_rounds += 1
+                    print(f"\n--- Round {combat_rounds} ---")
+                    action = input("Your action > ").strip()
+                    
+                    if not action:
+                        print("You hesitate! The enemy strikes!")
+                        self.state.health -= 10
+                        if self.state.health <= 0:
+                            print("\n💀 You died from hesitation!")
+                            self.current_node = "death_combat"
+                            break
+                        continue
+                    
+                    # Get context for AI
+                    context = {
+                        "location": self.state.location,
+                        "in_combat": True,
+                        "enemy": node.combat.get("enemy", {})
+                    }
+                    
+                    # Evaluate with AI
+                    success, description, effects = self.dm.evaluate_action(action, context)
+                    print(f"\n{description}")
+                    
+                    # Apply effects
+                    if "damage_taken" in effects:
+                        self.state.health -= effects["damage_taken"]
+                        print(f"💔 You take {effects['damage_taken']} damage! Health: {self.state.health}")
+                        if self.state.health <= 0:
+                            print("\n💀 You have been slain!")
+                            self.current_node = "death_combat"
+                            in_combat = False
+                            break
+                    
+                    if "damage_dealt" in effects:
+                        print(f"⚔️  You deal {effects['damage_dealt']} damage!")
+                        if effects["damage_dealt"] > 30:
+                            print("\n🏆 VICTORY! The enemy falls!")
+                            # Find victory node
+                            self.current_node = self.find_next_victory_node(self.current_node)
+                            in_combat = False
+                            break
+                    
+                    if not success and "damage_taken" not in effects:
+                        # Illogical action = punishment
+                        print("\n💀 Your illogical action sealed your fate!")
+                        print(f"❌ LESSON: {description}")
+                        self.current_node = "death_combat"
+                        in_combat = False
+                        break
+                
+                continue  # Skip normal choice display
+            
             # Show status
             self.show_status()
             
@@ -4547,13 +5070,14 @@ You won. Completely.
             print(node.description)
             print("="*60)
             
+            # Randomize choice order (so option 1 isn't always best!)
+            shuffled_choices = node.choices.copy()
+            random.shuffle(shuffled_choices)
+            
             # Show choices
             print("\nWhat do you do?\n")
-            for i, choice in enumerate(node.choices, 1):
+            for i, choice in enumerate(shuffled_choices, 1):
                 print(f"{i}. {choice['text']}")
-            
-            # Add save option
-            print(f"{len(node.choices) + 1}. [Save Checkpoint]")
             
             # Get player input
             retry_count = 0
@@ -4562,15 +5086,9 @@ You won. Completely.
                     choice_input = input("\n> ").strip()
                     choice_num = int(choice_input)
                     
-                    # Check if save checkpoint option
-                    if choice_num == len(node.choices) + 1:
-                        checkpoint_name = input("Checkpoint name (or press Enter): ").strip()
-                        self.create_checkpoint(checkpoint_name if checkpoint_name else None)
-                        print("You can continue from this point later.\n")
-                        continue  # Don't consume a turn
-                    
-                    if 1 <= choice_num <= len(node.choices):
-                        chosen = node.choices[choice_num - 1]
+                    # Use shuffled choices
+                    if 1 <= choice_num <= len(shuffled_choices):
+                        chosen = shuffled_choices[choice_num - 1]
                         
                         # End time pressure when escaping water
                         if self.state.in_timed_scenario and "drainage" in chosen["next"]:

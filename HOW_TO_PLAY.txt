@@ -1,0 +1,62 @@
+===========================================
+ZAGREUS' DESCENT - HOW TO PLAY
+===========================================
+
+PLAY NOW:
+  python3 zagreus_dungeon.py
+
+⚠️  IMPORTANT CHANGES:
+  - CHOICES ARE RANDOMIZED!
+  - Option 1 is NOT always best
+  - Read every choice carefully
+  - No manual saving (auto only)
+  - AI combat is FORCED (no choices)
+
+FIRST TIME:
+  ⚠️  Don't memorize numbers!
+  - Read the description carefully
+  - Think what makes logical sense
+  - Choices shuffle each playthrough
+  - Option order is RANDOM
+
+COMBAT (if AI enabled):
+  - No preset options shown
+  - Describe your action
+  - Illogical = instant death
+  - Creative + logical = survive
+  - Example: "Thrust torch at eyes, dodge left"
+
+AUTO-CHECKPOINTS:
+  ✓ After looting corpse
+  ✓ Reaching drainage tunnel
+  ✓ Before ghoul fight
+  ✓ Before guard encounters
+  ✓ At major junctions
+  ⚠️  Cannot manually save!
+
+TIPS:
+  - Read descriptions for hints
+  - Smells, sounds = warnings
+  - Don't be greedy
+  - Learn from deaths
+  - Checkpoints save automatically
+
+WHEN YOU DIE:
+  1. Read the death lesson
+  2. Load latest checkpoint
+  3. Try different approach
+  4. Remember: choices are shuffled!
+
+CONTROLS:
+  - Type number to choose
+  - In combat: describe action
+  - At death: choose 1, 2, or 3
+
+⚠️  WARNING:
+  Option 1 might be DEATH!
+  Always read before choosing!
+
+NO INSTALLATION NEEDED!
+Just run and survive! 💀
+
+===========================================
