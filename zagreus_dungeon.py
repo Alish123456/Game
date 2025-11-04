@@ -2238,10 +2238,41 @@ Your wounded side screams in protest, but fear drives you upward.
 Hand over hand, you climb in complete darkness. The holds are slippery with algae.
 Suddenly, your hand slips! You're dangling by one arm, twelve feet above the water.""",
             [
-                {"text": "Pull yourself back up with sheer willpower", "next": "successful_climb"},
+                {"text": "Pull yourself back up with sheer willpower", "next": "climb_slip_death"},
                 {"text": "Drop back into the water safely", "next": "back_to_water"},
-                {"text": "Try to swing to grab another hold", "next": "swing_for_hold"}
+                {"text": "Try to swing to grab another hold", "next": "swing_fail_death"}
             ]
+        )
+        
+        self.nodes["climb_slip_death"] = StoryNode(
+            "climb_slip_death",
+            """You try to pull yourself up with your wounded body. Your muscles shake.
+Your grip fails. You fall!
+
+You crash into the water from twelve feet up. Your head hits the stone floor beneath.
+Everything goes dark. You float face-down in the rising water.
+
+CAUSE OF DEATH: Fall from climbing attempt, drowned while unconscious
+SURVIVAL TIME: 6 minutes
+
+Ambition without caution kills. The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["swing_fail_death"] = StoryNode(
+            "swing_fail_death",
+            """You swing your body, trying to reach another hold.
+Your wounded side tears open from the strain. The pain is blinding.
+Your grip fails. You fall!
+
+You hit the water hard. Blood clouds around you from your reopened wound.
+You're too weak to swim. The water is too deep now. You sink.
+
+CAUSE OF DEATH: Fall and blood loss, drowned
+SURVIVAL TIME: 6 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
         )
         
         self.nodes["successful_climb"] = StoryNode(
@@ -2857,14 +2888,30 @@ The guard backs toward the weapon rack, reaching for a sword.""",
         self.nodes["back_to_water"] = StoryNode(
             "back_to_water",
             """You let go and drop back into the water with a splash.
-Better to be safe than fall from higher up.
+A wise choice—climbing was suicide with your injuries.
 The water is even higher now—it's at your shoulders.
-You need to find another way out, quickly!""",
+
+As you land, your hand brushes against something in the wall underwater—
+a crack! Hidden beneath the waterline. You might be able to squeeze through!""",
             [
-                {"text": "Try climbing again more carefully", "next": "climb_wall_holds"},
-                {"text": "Search the water for items", "next": "search_cell_water"},
-                {"text": "Dive underwater to find a passage", "next": "dive_underwater"}
+                {"text": "Force yourself through the crack immediately", "next": "crack_escape"},
+                {"text": "Dive through the crack underwater", "next": "underwater_crack_passage"},
+                {"text": "Ignore it and search elsewhere", "next": "ignore_crack_death"}
             ]
+        )
+        
+        self.nodes["ignore_crack_death"] = StoryNode(
+            "ignore_crack_death",
+            """You ignore the crack—a fatal mistake.
+You search elsewhere but find nothing. The water rises to your chin, your mouth, your nose.
+
+You had your chance. You let it slip away.
+
+CAUSE OF DEATH: Drowned (ignored the only escape route)
+SURVIVAL TIME: 7 minutes
+
+Sometimes the obvious choice is the right one. The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
         )
         
         self.nodes["swing_for_hold"] = StoryNode(
