@@ -2414,55 +2414,471 @@ Wait... you hear footsteps above. Someone is coming!
 A grating sound—metal on stone. A voice from above, raspy and cruel:
 "Well, well. Still alive down there, are we? You're tougher than you look, Zagreus."
 
-A torch appears at the opening above. You see a face—one of the guards.
-He sneers down at you.""",
+A torch appears at the opening above. You see a face—not a guard, but one of your 
+former companions. The one who betrayed you. He grins sadistically down at you,
+clearly enjoying your suffering.""",
             [
-                {"text": "Beg for mercy", "next": "beg_guard_mercy"},
-                {"text": "Offer him money to help", "next": "bribe_guard_above"},
-                {"text": "Curse him and his family", "next": "curse_guard"},
-                {"text": "Stay silent and stare", "next": "silent_stare"},
-                {"text": "Custom action", "next": "custom_guard_above"}
+                {"text": "Beg for mercy", "next": "beg_betrayer_mercy"},
+                {"text": "Offer him money to help", "next": "bribe_betrayer"},
+                {"text": "Curse him and his family", "next": "curse_betrayer"},
+                {"text": "Stay silent and stare", "next": "silent_stare_betrayer"}
             ]
         )
         
-        self.nodes["beg_guard_mercy"] = StoryNode(
-            "beg_guard_mercy",
-            """You beg for your life. "Please! I don't deserve this! Pull me up!"
+        self.nodes["beg_betrayer_mercy"] = StoryNode(
+            "beg_betrayer_mercy",
+            """You beg for your life. "Please! We were friends! Pull me up!"
 
-The guard laughs. "Deserve? You murdered Lord Theron's daughter, or so they say.
-Whether you did or not doesn't matter. You made enemies of powerful people."
+The betrayer laughs cruelly. "Friends? You were always too trusting, Zagreus.
+That's what made it so easy. You actually believed my lies!"
 
-He spits into the water. "But... I'm not without mercy. Catch!"
+He spits into the water. "Here, let me help you!" He throws down a rope—
+but it's far too short, dangling well above your reach.
 
-He throws down a rope. But it's too short—it dangles three feet above your reach.
-He laughs harder. "Oops! My mistake!"
+He cackles with sadistic glee. "Oh, did I miscalculate? How clumsy of me!"
 
-The water is rising faster now.""",
+The water is rising faster now. He's clearly enjoying watching you drown.""",
             [
-                {"text": "Jump for the rope", "next": "jump_for_rope"},
-                {"text": "Scream curses at him", "next": "curse_cruel_guard"},
-                {"text": "Ignore him and search for another way", "next": "search_exit_urgent"},
-                {"text": "Custom action", "next": "custom_rope_taunt"}
+                {"text": "Jump desperately for the rope", "next": "jump_fail_drown"},
+                {"text": "Scream curses at him", "next": "curse_betrayer_rage"},
+                {"text": "Ignore him and search for another way", "next": "search_wall_desperate"}
             ]
         )
         
-        self.nodes["jump_for_rope"] = StoryNode(
-            "jump_for_rope",
+        # New nodes for betrayer interaction (replaces guard nodes)
+        self.nodes["jump_fail_drown"] = StoryNode(
+            "jump_fail_drown",
             """You jump with all your might, fingers grasping for the rope!
-You miss it by inches. You try again. And again.
-The guard watches, amused. "Dance, prisoner, dance!"
+You miss by a full arm's length. You try again, exhausting yourself.
+The betrayer watches, amused. "Dance, prisoner, dance! Just like old times!"
 
-On your fourth jump, your fingers brush the rope—and you grab it!
-You pull yourself up, hand over hand. The guard's eyes widen.
-"No! You weren't supposed to—" He tries to pull the rope back up.
+Your third jump is weaker. The water is at your mouth now.
+You'll never reach the rope—it's impossible. He made sure of it.
+The hole is too deep, the rope too short. He wants you to die here.
 
-Too late. You're already climbing. He can't pull you and the rope up together.""",
+Your only hope is finding another way out of this hell hole.""",
             [
-                {"text": "Climb faster before he cuts the rope", "next": "climb_rope_fast"},
-                {"text": "Try to swing to grab the ledge", "next": "swing_to_ledge"},
-                {"text": "Custom action", "next": "custom_rope_climb"}
+                {"text": "One last desperate search of the walls", "next": "find_hidden_crack"},
+                {"text": "Dive underwater for any passage", "next": "dive_last_chance"},
+                {"text": "Give up and accept death", "next": "death_drowning"}
             ]
         )
+        
+        self.nodes["find_hidden_crack"] = StoryNode(
+            "find_hidden_crack",
+            """Your hands frantically search the slime-covered walls one final time.
+Wait—there! A crack in the stonework, barely wide enough for a person.
+Hidden beneath the waterline, impossible to see, but you can feel it.
+
+The betrayer's voice echoes from above: "Still struggling? How pathetic!"
+
+You have seconds left. This crack might be your only chance.""",
+            [
+                {"text": "Squeeze through the crack immediately", "next": "crack_escape"},
+                {"text": "Take a breath and dive through underwater", "next": "underwater_crack_passage"}
+            ]
+        )
+        
+        self.nodes["crack_escape"] = StoryNode(
+            "crack_escape",
+            """You force yourself through the narrow crack in the wall!
+Stone scrapes your shoulders raw. Your wound tears open wider.
+You're barely squeezing through—it's so tight you can't breathe.
+
+Behind you, the betrayer's laughter fades. "Where did you—? NO! That crack
+was supposed to be sealed! Guards! GUARDS!"
+
+You push through with desperate strength. Finally, you tumble out the other side
+into a dark, narrow passage. Behind you, the crack is flooding with water.
+You crawl forward frantically as water chases you up the sloping passage.
+
+After what feels like an eternity, the passage levels out. The water stops rising.
+You're safe. Barely. But you escaped the hell hole.""",
+            [
+                {"text": "Catch your breath and assess injuries", "next": "assess_after_crack"},
+                {"text": "Keep moving before they find you", "next": "hidden_passage_forward"},
+                {"text": "Tend to your bleeding wound", "next": "emergency_wound_care"}
+            ]
+        )
+        
+        self.nodes["underwater_crack_passage"] = StoryNode(
+            "underwater_crack_passage",
+            """You take the deepest breath possible and dive toward the crack.
+The water is murky and foul. You pull yourself through the submerged opening.
+It's tighter than you thought—your shoulders barely fit. You're stuck halfway!
+
+Panic threatens to overwhelm you. Your lungs burn. You twist, scrape, push—
+and suddenly you're through! You surface in a flooded passage, gasping.
+
+The passage ahead slopes upward. You swim toward air, toward survival.""",
+            [
+                {"text": "Swim up the passage desperately", "next": "flooded_passage_escape"},
+                {"text": "Rest briefly before continuing", "next": "rest_in_water_death"}
+            ]
+        )
+        
+        self.nodes["rest_in_water_death"] = StoryNode(
+            "rest_in_water_death",
+            """You try to rest, treading water. But you're too exhausted, too wounded.
+Your strength gives out. You slip beneath the surface. The cold water fills your lungs.
+
+You escaped the betrayer's mockery, but not his trap.
+
+CAUSE OF DEATH: Drowned in flooded passage
+SURVIVAL TIME: 6 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["flooded_passage_escape"] = StoryNode(
+            "flooded_passage_escape",
+            """You swim with desperate strength up the sloping passage.
+The water level drops. Your head breaks the surface more often.
+Finally, you pull yourself onto dry stone, coughing up water.
+
+You're in a narrow service tunnel—probably used for maintenance centuries ago.
+The betrayer's voice is distant now, echoing from far away.
+You escaped. But you're badly wounded, freezing, and deep in the dungeon.""",
+            [
+                {"text": "Crawl forward through the tunnel", "next": "service_tunnel_exploration"},
+                {"text": "Check your wounds before moving", "next": "assess_after_crack"},
+                {"text": "Listen for pursuit", "next": "listen_for_guards"}
+            ]
+        )
+        
+        self.nodes["curse_betrayer_rage"] = StoryNode(
+            "curse_betrayer_rage",
+            """You scream every curse you know at him. "May the gods damn you! 
+May your family suffer! May you die alone and forgotten, you coward!"
+
+The betrayer's face darkens with rage. "How DARE you!" He picks up a large rock.
+"Die then, former friend!" He hurls it down at your head with all his strength!
+
+The rock crashes into the water—missing you by inches but creating a huge splash.
+You go under, disoriented. When you surface, gasping, he's gone.
+
+But the water is at your chin now. His rage might have saved you by forcing
+him to leave, but you're still drowning.""",
+            [
+                {"text": "Search the walls one last time", "next": "find_hidden_crack"},
+                {"text": "Dive for an underwater exit", "next": "dive_last_chance"},
+                {"text": "Float and hope for a miracle", "next": "death_drowning"}
+            ]
+        )
+        
+        self.nodes["bribe_betrayer"] = StoryNode(
+            "bribe_betrayer",
+            """You call up: "I have gold! Hidden! Pull me up and I'll tell you where!"
+
+The betrayer's eyes gleam with greed, then he laughs. "Nice try, Zagreus!
+But I already took all your gold. Remember? That's how I lured you here!
+You always were too trusting. That gold is long gone—spent on wine and whores!"
+
+He spits into the water. "Any other bright ideas before you drown?"
+
+The water is at your chin. He's clearly not going to help.""",
+            [
+                {"text": "Search desperately for another way out", "next": "find_hidden_crack"},
+                {"text": "Curse him with your last breaths", "next": "curse_betrayer_rage"},
+                {"text": "Dive underwater to find escape", "next": "dive_last_chance"}
+            ]
+        )
+        
+        self.nodes["silent_stare_betrayer"] = StoryNode(
+            "silent_stare_betrayer",
+            """You say nothing. You just stare at him with cold, hard eyes full of hate.
+The betrayer shifts uncomfortably. Something in your gaze unsettles him.
+"What? Stop looking at me like that!" But you don't break eye contact.
+
+"F-fine! Rot down there for all I care!" He turns to leave, rattled.
+But in his haste, he drops his torch. It falls into the water with a hiss,
+plunging everything into darkness.
+
+"Damn it!" you hear him curse above. Then his footsteps fade.
+The water is at your mouth. Darkness. Rising water. Death approaching.""",
+            [
+                {"text": "Search blindly for a way out", "next": "find_hidden_crack"},
+                {"text": "Dive down in the darkness", "next": "dive_last_chance"},
+                {"text": "Accept your fate", "next": "death_drowning"}
+            ]
+        )
+        
+        self.nodes["curse_guard"] = StoryNode(
+            "curse_guard",
+            """You scream curses at the figure above. "May the gods damn you! May your family suffer!
+May you die alone and forgotten!"
+
+A voice laughs—but it's your betrayer.
+"Still have fire in you? Good! Makes it more entertaining to watch you drown!"
+
+He tosses down a small object—it splashes into the water near you.
+"A gift! For old times' sake!" Then he's gone, laughing.
+
+You search in the dark water and find it—a small vial. Poison? Medicine? 
+You'll never know if you don't take the risk.""",
+            [
+                {"text": "Drink the mysterious vial", "next": "drink_mystery_vial"},
+                {"text": "Ignore it and search for exit", "next": "find_hidden_crack"},
+                {"text": "Throw it away in disgust", "next": "dive_last_chance"}
+            ]
+        )
+        
+        self.nodes["drink_mystery_vial"] = StoryNode(
+            "drink_mystery_vial",
+            """You uncork the vial and drink it down. It burns like fire!
+Your vision blurs. Your heart races. Is it poison? Or...
+
+Suddenly, strength surges through your body! It's a combat stimulant—illegal and dangerous,
+but effective. Your muscles bulge with unnatural energy. The pain fades.
+
+But this won't last long. And the side effects will be brutal.
+You have maybe five minutes of enhanced strength.""",
+            [
+                {"text": "Use the strength to force the crack wider", "next": "force_crack_open"},
+                {"text": "Dive with enhanced power", "next": "powered_dive_escape"},
+                {"text": "Waste time marveling at the power", "next": "stimulant_wears_off_death"}
+            ]
+        )
+        
+        self.nodes["force_crack_open"] = StoryNode(
+            "force_crack_open",
+            """With your enhanced strength, you grip the edges of the hidden crack
+and PULL with inhuman force! The ancient stone gives way—crumbling!
+You tear the opening wider, making it passable!
+
+Your muscles scream in protest but you don't stop. You force your way through
+just as the stimulant wears off. Pain crashes back into you like a wave.
+
+You collapse on the other side, in a service tunnel. Safe. Barely.""",
+            [
+                {"text": "Assess the damage to your body", "next": "stimulant_aftermath"},
+                {"text": "Keep moving before collapse", "next": "service_tunnel_exploration"}
+            ]
+        )
+        
+        self.nodes["powered_dive_escape"] = StoryNode(
+            "powered_dive_escape",
+            """You take a massive breath and dive down with enhanced strength!
+You swim deeper than you thought possible, pulling yourself through the underwater
+passages with powerful strokes. Your muscles don't tire. You don't need air—or so it feels.
+
+But then the stimulant wears off. Suddenly. All at once.
+
+You're deep underwater, in darkness, and your strength is GONE.
+Your lungs burn. You can't remember which way is up. Panic sets in.""",
+            [
+                {"text": "Calm yourself and feel for current", "next": "underwater_survival"},
+                {"text": "Swim randomly in desperation", "next": "death_drowning_deep"},
+                {"text": "Give up and breathe in water", "next": "death_drowning"}
+            ]
+        )
+        
+        self.nodes["stimulant_wears_off_death"] = StoryNode(
+            "stimulant_wears_off_death",
+            """You marvel at the power coursing through you, testing your strength.
+But you waste precious seconds. The stimulant wears off suddenly.
+
+The crash is brutal. Your heart stutters. Your muscles seize up.
+The water is over your head now. You try to swim but your body won't respond.
+
+The drug's side effects—muscle paralysis—hit you all at once.
+You sink beneath the water, unable to move, unable to even struggle.
+
+CAUSE OF DEATH: Stimulant overdose and drowning
+SURVIVAL TIME: 7 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["underwater_survival"] = StoryNode(
+            "underwater_survival",
+            """You force yourself to be calm. Feel for the current. Water flows somewhere.
+You feel a subtle pull—upward! You swim toward it with your remaining strength.
+
+Your lungs are screaming. Your vision darkens. But you keep going.
+Suddenly your head breaks the surface! You gasp, pulling in precious air.
+
+You're in a flooded chamber, but there's air. You can breathe. You survived.""",
+            [
+                {"text": "Swim to find solid ground", "next": "flooded_chamber_exploration"},
+                {"text": "Float and rest before continuing", "next": "rest_in_water_death"}
+            ]
+        )
+        
+        self.nodes["death_drowning_deep"] = StoryNode(
+            "death_drowning_deep",
+            """You swim blindly in the darkness, using your last energy.
+But you chose wrong. You swim deeper into the flooded tunnels.
+
+Your lungs give out. You breathe in water. Darkness takes you.
+
+CAUSE OF DEATH: Drowned in deep underwater tunnels
+SURVIVAL TIME: 8 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        # New nodes for escape routes and aftermath
+        self.nodes["assess_after_crack"] = StoryNode(
+            "assess_after_crack",
+            """You examine yourself in the dim passage. You're a mess:
+- Deep wound on your side (bleeding heavily now)
+- Shoulders scraped raw from squeezing through
+- Hypothermic from the cold water
+- Exhausted beyond measure
+
+You're alive, but barely. You need treatment soon or you'll die from blood loss.""",
+            [
+                {"text": "Tear cloth to bandage the worst wounds", "next": "emergency_bandage"},
+                {"text": "Push forward despite injuries", "next": "hidden_passage_forward"},
+                {"text": "Rest here briefly", "next": "rest_and_bleed_death"}
+            ]
+        )
+        
+        self.nodes["emergency_bandage"] = StoryNode(
+            "emergency_bandage",
+            """You tear strips from your soaked clothing and bind your worst wounds.
+It's crude and the cloth is filthy, but it slows the bleeding.
+You'll likely get infected, but that's a problem for later.
+
+Right now, you just need to survive the next hour.""",
+            [
+                {"text": "Continue through the passage", "next": "hidden_passage_forward"},
+                {"text": "Search the passage for supplies", "next": "search_service_tunnel"}
+            ]
+        )
+        
+        self.nodes["rest_and_bleed_death"] = StoryNode(
+            "rest_and_bleed_death",
+            """You sit down to rest, just for a moment. But you're losing too much blood.
+The cold seeps into your bones. Your vision dims. You slump against the wall.
+
+You escaped the betrayer, but not death.
+
+CAUSE OF DEATH: Blood loss and hypothermia
+SURVIVAL TIME: 9 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["hidden_passage_forward"] = StoryNode(
+            "hidden_passage_forward",
+            """You crawl forward through the narrow passage. It twists and turns,
+clearly designed for drainage, not travel. Rats scatter before you.
+
+After what feels like an eternity, the passage opens into a larger space.
+You emerge in an abandoned storage room. Rotting crates, broken barrels,
+and—blessed relief—a dry corner where you can rest.""",
+            [
+                {"text": "Search the crates for supplies", "next": "search_storage_room"},
+                {"text": "Rest in the dry corner", "next": "rest_in_storage"},
+                {"text": "Keep moving—they might search here", "next": "exit_storage_room"}
+            ]
+        )
+        
+        self.nodes["emergency_wound_care"] = StoryNode(
+            "emergency_wound_care",
+            """You examine your wound more closely. It's bad—very bad.
+The edges are jagged. Something sharp tore through your flesh when you fell.
+You're bleeding steadily. You need real medical attention or you'll die.
+
+But you have nothing. No bandages, no medicine, nothing.""",
+            [
+                {"text": "Tear clothing for crude bandages", "next": "emergency_bandage"},
+                {"text": "Try to find fire to cauterize later", "next": "hidden_passage_forward"},
+                {"text": "Ignore it and keep moving", "next": "hidden_passage_forward"}
+            ]
+        )
+        
+        self.nodes["service_tunnel_exploration"] = StoryNode(
+            "service_tunnel_exploration",
+            """The service tunnel is narrow but navigable. Ancient maintenance passages,
+probably forgotten for centuries. You crawl through, leaving a trail of blood.
+
+You find old tool marks on the walls, signs of long-dead workers.
+The tunnel branches ahead—left slopes down, right slopes up.""",
+            [
+                {"text": "Take the upward path", "next": "tunnel_upward"},
+                {"text": "Take the downward path", "next": "tunnel_downward"},
+                {"text": "Rest here before deciding", "next": "rest_and_bleed_death"}
+            ]
+        )
+        
+        self.nodes["listen_for_guards"] = StoryNode(
+            "listen_for_guards",
+            """You press your ear to the cold stone, listening intently.
+Distant voices... footsteps... but fading. They're searching, but not here.
+Not yet. The betrayer must have told them you escaped into the passages.
+
+You have time, but not much. They'll find this tunnel eventually.""",
+            [
+                {"text": "Move quickly before they find you", "next": "service_tunnel_exploration"},
+                {"text": "Hide and wait for them to pass", "next": "hide_in_tunnel"},
+                {"text": "Set a trap for pursuers", "next": "tunnel_trap"}
+            ]
+        )
+        
+        self.nodes["stimulant_aftermath"] = StoryNode(
+            "stimulant_aftermath",
+            """The stimulant has worn off completely. The aftermath is brutal.
+Your muscles ache like you've been beaten with hammers. Your heart races erratically.
+Your hands shake uncontrollably. The drug's side effects are severe.
+
+But you're alive. And you're out of that hell hole.""",
+            [
+                {"text": "Push through the pain", "next": "service_tunnel_exploration"},
+                {"text": "Rest until the shaking stops", "next": "rest_stimulant_death"},
+                {"text": "Search for water to dilute the drug", "next": "search_for_water"}
+            ]
+        )
+        
+        self.nodes["rest_stimulant_death"] = StoryNode(
+            "rest_stimulant_death",
+            """You try to rest, but the stimulant's effects won't let you.
+Your heart beats faster... and faster... too fast.
+
+Cardiac arrest. The illegal drug stops your heart.
+You clutch your chest, gasping, then collapse.
+
+CAUSE OF DEATH: Heart failure from combat stimulant
+SURVIVAL TIME: 10 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["flooded_chamber_exploration"] = StoryNode(
+            "flooded_chamber_exploration",
+            """You swim through the flooded chamber, searching for an exit.
+The water is dark and cold. Your limbs are numb. But you keep going.
+
+Finally, you find a ledge—solid stone. You pull yourself up, gasping.
+You're in some kind of cistern. Water storage from ages past.
+There's a ladder built into the wall, leading up into darkness.""",
+            [
+                {"text": "Climb the ladder immediately", "next": "climb_cistern_ladder"},
+                {"text": "Rest on the ledge first", "next": "rest_on_ledge"},
+                {"text": "Search the cistern for supplies", "next": "search_cistern"}
+            ]
+        )
+        
+        self.nodes["search_wall_desperate"] = StoryNode(
+            "search_wall_desperate",
+            """You ignore the betrayer's taunts and frantically search the walls.
+Your hands are numb from the cold. The water is at your chin.
+You have mere seconds. There must be something—anything!
+
+Your hand finds it—a crack. A hidden crack in the stonework!""",
+            [
+                {"text": "Force yourself through the crack", "next": "crack_escape"},
+                {"text": "Take a breath and dive through underwater", "next": "underwater_crack_passage"}
+            ]
+        )
+        
         
         self.nodes["climb_rope_fast"] = StoryNode(
             "climb_rope_fast",
