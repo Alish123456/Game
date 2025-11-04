@@ -1786,7 +1786,7 @@ You feel slightly more prepared, though still in mortal danger from the rising w
         # New deadly versions of choices
         self.nodes["take_chain_death"] = StoryNode(
             "take_chain_death",
-            """You grab the chain, avoiding the corpse. A mistake.
+            """You grab the chain, avoiding the corpse. A fatal mistake.
 The chain is attached to the shackle, which is bolted to the floor.
 You waste precious time trying to break it free. The water rises.
 
@@ -1795,6 +1795,11 @@ The water is over your head. You try to swim but your strength is gone.
 
 CAUSE OF DEATH: Drowned while wasting time on a useless chain
 SURVIVAL TIME: 4 minutes
+
+💀 LESSON LEARNED: In time-pressure scenarios (drowning), don't waste actions on 
+   things that won't help you escape. The chain was bolted down and useless.
+   You should have searched the CORPSE for useful items (tinderbox) or 
+   felt the WALLS for a hidden exit. Time is precious when drowning!
 
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
@@ -1810,6 +1815,11 @@ Which way is up? You're disoriented. You breathe in water.
 
 CAUSE OF DEATH: Head injury and drowning (panic killed you)
 SURVIVAL TIME: 3 minutes
+
+💀 LESSON LEARNED: Panic is deadly. The corpse was disgusting but harmless.
+   It had a TINDERBOX you needed for light and survival. By recoiling in
+   fear instead of searching it thoroughly, you wasted time and missed 
+   critical items. Fear kills - overcome it and search bodies for supplies!
 
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
@@ -1828,6 +1838,12 @@ The chain—now a useless weight—drags you down as you try to swim.
 
 CAUSE OF DEATH: Drowned (wasted time preparing for nonexistent threat)
 SURVIVAL TIME: 4 minutes
+
+💀 LESSON LEARNED: Assess the situation before acting. There was NO ENEMY 
+   in the cell - just you and water. The chain was useless and attached
+   to the floor. You should have: 1) Searched corpse for items, 2) Felt 
+   walls for exit, or 3) Dove underwater for passage. Don't prepare for
+   battles that don't exist when you're drowning!
 
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
@@ -2288,6 +2304,15 @@ but the water rose too fast. Your last thought is of your betrayer, smiling.
 CAUSE OF DEATH: Drowned in flooded cell
 SURVIVAL TIME: 2 minutes
 
+💀 LESSON LEARNED: Standing still or conserving energy DOES NOT WORK when 
+   drowning. The water rises continuously. You MUST act:
+   - Search the corpse for items (tinderbox, tools)
+   - Feel walls for hidden cracks or exits
+   - Dive underwater to find drainage passages
+   - Scream for help (reveals hidden opportunities)
+   
+   Passive waiting = guaranteed death. ACT FAST!
+
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
         )
@@ -2309,6 +2334,15 @@ Your parts will become part of the collection.
 CAUSE OF DEATH: Harvested
 SURVIVAL TIME: 8 minutes
 
+💀 LESSON LEARNED: The Harvester is attracted by FEAR (stat). It hunts those
+   who panic. Warning signs before it appears:
+   - Wet dragging sound = IT'S COMING
+   - High fear stat = You're being tracked
+   - Darkness = It hunts in shadows
+   
+   How to avoid: Keep fear low, stay in lit areas, move quietly. If you
+   hear wet dragging, RUN IMMEDIATELY to light/exit. Don't investigate!
+
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
         )
@@ -2323,6 +2357,19 @@ Death came not from a wrong choice, but from hesitation.
 CAUSE OF DEATH: Too slow to act
 SURVIVAL TIME: varies
 
+💀 LESSON LEARNED: Some scenarios have ACTION LIMITS:
+   - Drowning: ~5 actions before death
+   - Fire/burning: varies
+   - Chases: must act fast
+   
+   When you see ⏰ TIME-SENSITIVE warning:
+   1. Don't overthink - choose fastest path
+   2. Don't search exhaustively - grab essentials only
+   3. Don't talk too much - act immediately
+   4. Prioritize ESCAPE over collecting items
+   
+   Speed > Perfection when time is running out!
+
 In the dungeon, indecision is death. The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
         )
@@ -2334,6 +2381,19 @@ The fire spreads across your body, unstoppable. The pain is beyond description.
 
 CAUSE OF DEATH: Burned alive
 SURVIVAL TIME: varies
+
+💀 LESSON LEARNED: Fire warnings are always present before burns:
+   - SULFUR SMELL = Fire/chemical hazard ahead
+   - WARM WALLS = Heat source nearby
+   - BURN MARKS = Previous fire damage
+   
+   If you smell sulfur or feel warmth:
+   1. Don't carry flammable items
+   2. Wet yourself with water for protection
+   3. Move carefully to avoid triggering traps
+   4. Have exit route planned
+   
+   Environmental hints ALWAYS warn you - pay attention!
 
 The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
@@ -3659,6 +3719,388 @@ The dungeon claims another victim.""",
         self.nodes["custom_fight_dark"] = "CUSTOM_AI"
         self.nodes["custom_ghoul_surprise"] = "CUSTOM_AI"
         
+        # === CRITICAL MISSING NODES - Main Story Paths ===
+        
+        # Three main paths from past_ghoul_quick
+        self.nodes["upward_path"] = StoryNode(
+            "upward_path",
+            """You take the upward sloping path. The corridor climbs steadily.
+Your torch reveals ancient stonework - this passage is old, maybe as old as the
+dungeon itself. The air grows slightly fresher here. Are you getting closer to the surface?
+
+After several minutes of climbing, you reach a landing with a heavy wooden door.
+There's a symbol carved into it - a sun. Hope? Or a trap?""",
+            [
+                {"text": "Open the door carefully", "next": "sun_door_open"},
+                {"text": "Listen at the door first", "next": "listen_sun_door"},
+                {"text": "Search the landing for traps", "next": "search_sun_landing"},
+                {"text": "Go back and try another path", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        self.nodes["straight_path"] = StoryNode(
+            "straight_path",
+            """You continue straight ahead. The corridor is level, well-maintained.
+This was clearly a major thoroughfare at some point. You pass several side passages
+but stay on the main route.
+
+Ahead, you see flickering light - not torchlight, but something else. Greenish.
+Unnatural. As you approach, you smell something chemical, acidic.""",
+            [
+                {"text": "Investigate the green light", "next": "green_light_room"},
+                {"text": "Avoid it, take a side passage", "next": "side_passage_straight"},
+                {"text": "Proceed cautiously with torch raised", "next": "cautious_green_approach"},
+                {"text": "Go back to the junction", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        self.nodes["downward_path"] = StoryNode(
+            "downward_path",
+            """You descend the right path. It slopes down steeply, spiraling like a giant
+corkscrew. The walls are wet here, water seeping through cracks. Your torch reveals
+moss and strange fungi growing in patches.
+
+The descent seems endless. How deep does this dungeon go?
+
+Finally, you reach the bottom. Before you is a massive circular chamber with a pit
+in the center. The pit is so deep you can't see the bottom, even with your torch.""",
+            [
+                {"text": "Examine the pit carefully", "next": "examine_deep_pit"},
+                {"text": "Circle around the pit to the far exit", "next": "circle_pit"},
+                {"text": "Throw something in to hear how deep", "next": "test_pit_depth"},
+                {"text": "Go back up - this feels wrong", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        self.nodes["search_junction"] = StoryNode(
+            "search_junction",
+            """You search the junction area thoroughly. Among the debris and bones,
+you find several items:
+- A rusty shield (battered but usable)
+- A healing potion (half-full vial, red liquid)
+- A journal page (water-damaged, barely readable)
+
+The journal page reads: "...three paths... upward leads to guards... straight to
+the laboratory... downward to the pit... all dangerous... trust nothing..."
+
+💡 HINT: Each path has different dangers. Choose wisely based on your condition.""",
+            [
+                {"text": "Take all items and go upward", "next": "upward_path"},
+                {"text": "Take all items and go straight", "next": "straight_path"},
+                {"text": "Take all items and go down", "next": "downward_path"},
+                {"text": "Just take the healing potion and decide", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        # Sun door path (upward route)
+        self.nodes["sun_door_open"] = StoryNode(
+            "sun_door_open",
+            """You push the heavy door open. It creaks loudly on rusty hinges.
+
+Beyond is a guardroom - and it's OCCUPIED. Three guards sit around a table, playing
+cards. They look up in shock as you enter. One reaches for his sword.
+
+"Prisoner! How did you—"
+
+They're between you and the far exit. This is bad.""",
+            [
+                {"text": "Fight all three guards", "next": "fight_three_guards"},
+                {"text": "Try to talk your way out", "next": "talk_three_guards"},
+                {"text": "Run back through the door", "next": "run_from_guards"},
+                {"text": "Throw torch and run in chaos", "next": "torch_chaos_escape"}
+            ]
+        )
+        
+        self.nodes["listen_sun_door"] = StoryNode(
+            "listen_sun_door",
+            """You press your ear to the door. You hear voices - multiple people.
+Guards. At least three, maybe more. They're talking, laughing. Playing cards?
+
+One says: "...that prisoner should be dead by now..."
+Another: "Good riddance. The Overseer's experiments are getting worse..."
+
+They don't know you escaped. You have surprise on your side if you act.""",
+            [
+                {"text": "Burst in with surprise attack", "next": "surprise_guard_room"},
+                {"text": "Sneak in quietly", "next": "sneak_guard_room"},
+                {"text": "Wait for them to leave", "next": "wait_guards_leave"},
+                {"text": "Try another path instead", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        # Laboratory path (straight route)
+        self.nodes["green_light_room"] = StoryNode(
+            "green_light_room",
+            """You enter the room with green light. It's a LABORATORY.
+
+Tables covered with beakers, vials, strange apparatus. The green light comes from
+glowing liquid in large jars. Bodies - or parts of bodies - float in preserving fluid.
+
+This is the Overseer's workplace. The source of the experiments.
+
+On a desk, you see a KEY - ornate, golden. The exit key?
+
+But the room is trapped. Pressure plates on the floor. Tripwires. Deadly.""",
+            [
+                {"text": "Navigate traps carefully to get key", "next": "navigate_lab_traps"},
+                {"text": "Look for trap disarm mechanism", "next": "search_trap_mechanism"},
+                {"text": "Create distraction with thrown item", "next": "trigger_traps_safely"},
+                {"text": "Leave - too dangerous", "next": "straight_path"}
+            ]
+        )
+        
+        # Deep pit path (downward route)
+        self.nodes["examine_deep_pit"] = StoryNode(
+            "examine_deep_pit",
+            """You approach the edge carefully. The pit is ENORMOUS - at least 50 feet across.
+
+Looking down, you see... movement. Something is down there. Something BIG.
+
+You hear breathing. Heavy, wet breathing. The same sound from the flooded cell.
+
+This pit is a PRISON. Whatever is down there was locked away for a reason.
+
+Around the edge, you notice chains and pulleys - an elevator system, long broken.""",
+            [
+                {"text": "Try to repair the elevator", "next": "repair_elevator"},
+                {"text": "Climb down the chains", "next": "climb_pit_chains"},
+                {"text": "Circle around to far exit", "next": "circle_pit"},
+                {"text": "Leave immediately - danger!", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        # Victory path - getting the key
+        self.nodes["navigate_lab_traps"] = StoryNode(
+            "navigate_lab_traps",
+            """You step carefully, avoiding pressure plates marked by discoloration.
+You duck under tripwires. You move with precision.
+
+Almost there... your hand reaches for the key...
+
+SNAP! You triggered something! Gas hisses from vents!
+
+The gas is GREEN - the same as the liquid in the jars. POISON!""",
+            [
+                {"text": "Grab key and run!", "next": "grab_key_run"},
+                {"text": "Hold breath and navigate back", "next": "hold_breath_escape"},
+                {"text": "Wet cloth over face, grab key", "next": "cloth_mask_key"}
+            ]
+        )
+        
+        self.nodes["grab_key_run"] = StoryNode(
+            "grab_key_run",
+            """You snatch the key and RUN! You hold your breath as long as possible.
+
+You burst out of the laboratory, lungs burning. You made it!
+
+But you breathed some poison. Your health is dropping. You need treatment FAST.
+
+You have the KEY though! The exit should be accessible now!""",
+            [
+                {"text": "Find the exit immediately", "next": "find_main_exit"},
+                {"text": "Search for antidote first", "next": "search_antidote"},
+                {"text": "Use healing potion if you have one", "next": "use_healing_potion"}
+            ]
+        )
+        
+        # Main exit - final area
+        self.nodes["find_main_exit"] = StoryNode(
+            "find_main_exit",
+            """You follow signs that say "EXIT" in ancient script. The key is heavy in your hand.
+
+You reach a massive iron door. It has a keyhole that matches your key perfectly.
+
+Behind you, you hear alarms. They know you have the key. Guards are coming.
+
+You have minutes at best.""",
+            [
+                {"text": "Unlock door and escape NOW", "next": "escape_ending_quick"},
+                {"text": "Set trap for pursuers first", "next": "trap_pursuers"},
+                {"text": "Barricade behind you", "next": "barricade_and_escape"}
+            ]
+        )
+        
+        # GOOD ENDING - Quick Escape
+        self.nodes["escape_ending_quick"] = StoryNode(
+            "escape_ending_quick",
+            """You jam the key into the lock. It turns with a satisfying CLICK!
+
+The door swings open. MOONLIGHT! Fresh air! FREEDOM!
+
+You stumble out into a forest. Behind you, the dungeon entrance is hidden in ruins.
+Guards shout from within, but you're already running.
+
+You're wounded. Poisoned. Traumatized. But ALIVE.
+
+You escaped the dungeon. Against all odds.
+
+═══════════════════════════════════════════════════════════
+
+ENDING #3/100: DESPERATE ESCAPE
+
+You survived the betrayal, the dungeon, and the horrors within.
+You're broken, but free. The nightmares will never leave you,
+but you lived to tell the tale.
+
+Survival time: {self.state.turn_count} turns
+Deaths: {self.state.deaths}
+Path: Ghoul Fight → Laboratory → Key → Exit
+
+This is a GOOD ending. Not the best, but you survived.
+
+═══════════════════════════════════════════════════════════
+
+[GAME COMPLETE]""",
+            [{"text": "Play again for better ending?", "next": "restart"}]
+        )
+        
+        # Add the key missing nodes as placeholders pointing to logical outcomes
+        # This prevents crashes while providing a path forward
+        
+        missing_combat = [
+            "fight_three_guards", "surprise_guard_room", "sneak_guard_room",
+            "fight_overseer", "desperate_ghoul_fight", "defensive_ghoul_fight"
+        ]
+        for node_id in missing_combat:
+            self.nodes[node_id] = StoryNode(
+                node_id,
+                f"""[Combat Node: {node_id}]
+                
+This is a difficult fight. Your choices matter.
+
+⚠️ Under development - routing to combat system.""",
+                [
+                    {"text": "Fight strategically", "next": "past_ghoul_quick"},
+                    {"text": "Retreat if possible", "next": "past_ghoul_quick"}
+                ]
+            )
+        
+        # Add exploration nodes that loop back
+        missing_explore = [
+            "search_sun_landing", "side_passage_straight", "cautious_green_approach",
+            "test_pit_depth", "circle_pit", "wait_guards_leave", "search_trap_mechanism",
+            "trigger_traps_safely", "repair_elevator", "climb_pit_chains",
+            "search_antidote", "use_healing_potion", "trap_pursuers", "barricade_and_escape"
+        ]
+        for node_id in missing_explore:
+            self.nodes[node_id] = StoryNode(
+                node_id,
+                f"""[Exploration: {node_id}]
+                
+You explore this path...
+
+⚠️ Under development - routing back to main path.""",
+                [{"text": "Continue", "next": "past_ghoul_quick"}]
+            )
+        
+        # Critical paths that need completion
+        self.nodes["run_from_guards"] = StoryNode(
+            "run_from_guards",
+            """You turn and run! The guards chase you!
+
+You sprint back through the sun door, down the upward path, back to the junction.
+
+They're right behind you!""",
+            [
+                {"text": "Take the straight path", "next": "straight_path"},
+                {"text": "Take the downward path", "next": "downward_path"},
+                {"text": "Hide and ambush", "next": "past_ghoul_quick"}
+            ]
+        )
+        
+        self.nodes["torch_chaos_escape"] = StoryNode(
+            "torch_chaos_escape",
+            """You throw your torch at the guards! It lands in spilled oil on the table!
+
+WHOOSH! Fire erupts! The guards scramble!
+
+You run through the smoke to the far exit!
+
+But now you're in darkness... without a torch...""",
+            [
+                {"text": "Feel your way forward", "next": "dark_escape_path"},
+                {"text": "Wait for eyes to adjust", "next": "dark_escape_path"}
+            ]
+        )
+        
+        self.nodes["dark_escape_path"] = StoryNode(
+            "dark_escape_path",
+            """In the darkness, you feel along walls. You're blind but moving.
+
+You hear the guards behind you, but they're disoriented by smoke.
+
+Ahead, you see faint light - natural light. The exit?""",
+            [
+                {"text": "Run toward the light", "next": "escape_ending_quick"},
+                {"text": "Proceed carefully", "next": "escape_ending_quick"}
+            ]
+        )
+        
+        self.nodes["talk_three_guards"] = StoryNode(
+            "talk_three_guards",
+            """You raise your hands. "Wait! I'm not your enemy! The Overseer is!"
+
+They hesitate. One says: "The prisoner who should be dead..."
+
+Another: "How did you survive the drowning cell?"
+
+They're listening. For now.""",
+            [
+                {"text": "Tell them about the betrayal", "next": "explain_betrayal"},
+                {"text": "Offer to help them escape too", "next": "offer_mutual_escape"},
+                {"text": "Attack while they're distracted", "next": "fight_three_guards"}
+            ]
+        )
+        
+        self.nodes["explain_betrayal"] = StoryNode(
+            "explain_betrayal",
+            """You tell them everything. The betrayal. The drowning cell. The horrors below.
+
+The guards exchange glances. One nods slowly.
+
+"We've heard rumors. The Overseer's experiments. The screams..."
+
+"We can help you escape... if you promise to expose this place to the authorities."
+
+They're offering an alliance.""",
+            [
+                {"text": "Accept their help", "next": "guard_alliance_escape"},
+                {"text": "Refuse - don't trust them", "next": "run_from_guards"}
+            ]
+        )
+        
+        self.nodes["guard_alliance_escape"] = StoryNode(
+            "guard_alliance_escape",
+            """The guards lead you through secret passages. They know the dungeon well.
+
+You bypass traps, avoid patrols, move swiftly and quietly.
+
+Finally, you reach a service exit. Freedom!
+
+═══════════════════════════════════════════════════════════
+
+ENDING #1/100: ALLIANCE ESCAPE (BEST ENDING)
+
+You not only survived but made allies. The guards testify about
+the Overseer's crimes. The dungeon is shut down. Justice is served.
+
+You're hailed as a hero. Your betrayer is arrested. 
+
+You won. Completely.
+
+═══════════════════════════════════════════════════════════
+
+[GAME COMPLETE - BEST ENDING]""",
+            [{"text": "Play again?", "next": "restart"}]
+        )
+        
+        self.nodes["offer_mutual_escape"] = self.nodes["explain_betrayal"]
+        
+        self.nodes["hold_breath_escape"] = self.nodes["grab_key_run"]
+        self.nodes["cloth_mask_key"] = self.nodes["grab_key_run"]
+        
+        # ===  END OF CRITICAL MISSING NODES ===
+        
         self.nodes["restart"] = "RESTART"
     
     def create_checkpoint(self, checkpoint_name: str = None):
@@ -4033,18 +4475,42 @@ The dungeon claims another victim.""",
             
             # Handle restart
             if self.current_node == "RESTART":
-                print("\n\nRestarting game...")
-                print("1. Start from beginning")
-                print("2. Load checkpoint")
-                choice = input("> ").strip()
-                if choice == "2":
-                    self.list_checkpoints()
-                    try:
-                        cp_num = int(input("Enter checkpoint number: ").strip())
-                        if self.load_checkpoint(cp_num):
+                print("\n\n" + "="*60)
+                print("DEATH - WHAT DO YOU WANT TO DO?")
+                print("="*60)
+                
+                # Check if checkpoints exist
+                has_checkpoints = False
+                if os.path.exists(SAVE_DIR):
+                    saves = [f for f in os.listdir(SAVE_DIR) if f.startswith("checkpoint_")]
+                    has_checkpoints = len(saves) > 0
+                
+                if has_checkpoints:
+                    print("1. Load latest checkpoint (RECOMMENDED)")
+                    print("2. Load specific checkpoint")
+                    print("3. Start from beginning")
+                    choice = input("\n> ").strip()
+                    
+                    if choice == "1":
+                        # Load latest checkpoint
+                        if self.load_checkpoint():
+                            print("\nContinuing from your last save...")
                             continue
-                    except:
-                        pass
+                    elif choice == "2":
+                        self.list_checkpoints()
+                        try:
+                            cp_num = int(input("Enter checkpoint number: ").strip())
+                            if self.load_checkpoint(cp_num):
+                                continue
+                        except:
+                            pass
+                    # choice == "3" or failed load falls through to restart
+                else:
+                    print("No checkpoints available.")
+                    print("1. Start from beginning")
+                    choice = input("\n> ").strip()
+                
+                # Restart from beginning
                 self.__init__()
                 self.current_node = "start"
                 self.start_time_pressure(5, "Water rising - you have limited time!")
