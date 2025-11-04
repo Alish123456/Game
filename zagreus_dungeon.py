@@ -17,6 +17,14 @@ FIND_CHANCE_WITHOUT_LIGHT = 10
 MAX_INPUT_LENGTH = 500
 MAX_INPUT_RETRIES = 5
 
+# Status effect damage constants
+STATUS_DAMAGE_BLEEDING = 3
+STATUS_DAMAGE_POISONED = 5
+STATUS_DAMAGE_BURNING = 8
+STATUS_DAMAGE_INFECTED = 4
+STAMINA_DRAIN_POISONED = 5
+MAX_HEALTH_LOSS_INFECTED = 1
+
 # Game state class
 class GameState:
     def __init__(self):
@@ -126,12 +134,8 @@ class DungeonMaster:
         if self.state.status_effects["stunned"] > 0:
             return (False, "You're stunned and cannot act effectively this turn!", effects)
         
-        if self.state.status_effects["poisoned"] > 0:
-            effects["damage_taken"] += 3
-            
-        if self.state.status_effects["bleeding"] > 0:
-            effects["damage_taken"] += 2
-        
+        # Status effects that modify combat but don't deal damage here
+        # (damage is applied in process_node_effects)
         if self.state.status_effects["hasted"] > 0:
             accuracy_mod += 15
             
@@ -174,9 +178,11 @@ class DungeonMaster:
                 if self.state.equipped["weapon"]:
                     damage += 15
                 effects["damage_dealt"] = damage
+                # Check for blinding effect
                 if random.randint(1, 100) > 70:
                     effects["status"].append("enemy_blinded")
-                return (True, f"You strike the creature's eye! Critical hit for {damage} damage! It's blinded!", effects)
+                    return (True, f"You strike the creature's eye! Critical hit for {damage} damage! It's blinded!", effects)
+                return (True, f"You strike the creature's eye! Critical hit for {damage} damage!", effects)
             else:
                 hit_chance = 30 + self.state.agility * 3
                 if random.randint(1, 100) < hit_chance:
@@ -3108,12 +3114,16 @@ The dungeon claims another victim.""",
         if injuries:
             print(f"Injuries: {', '.join(injuries)}")
         
-        # Equipment
+        # Equipment with durability tracking
         equipped_items = []
         for slot, item in self.state.equipped.items():
             if item:
-                durability = self.state.equipment_durability.get(slot, 100)
-                equipped_items.append(f"{slot}: {item} ({durability}%)")
+                # Only show durability for items that actually degrade
+                if slot in ["weapon", "armor", "light"]:
+                    durability = self.state.equipment_durability.get(slot, 100)
+                    equipped_items.append(f"{slot}: {item} ({durability}%)")
+                else:
+                    equipped_items.append(f"{slot}: {item}")
         
         if equipped_items:
             print(f"Equipped: {', '.join(equipped_items)}")
@@ -3208,23 +3218,24 @@ The dungeon claims another victim.""",
         # Process status effects
         for effect, turns in list(self.state.status_effects.items()):
             if turns > 0:
-                self.state.status_effects[effect] = turns - 1
+                # Apply ongoing damage/effects BEFORE decrementing
+                if effect == "bleeding":
+                    self.state.health -= STATUS_DAMAGE_BLEEDING
+                    print(f"[Bleeding: -{STATUS_DAMAGE_BLEEDING} health]")
+                elif effect == "poisoned":
+                    self.state.health -= STATUS_DAMAGE_POISONED
+                    self.state.stamina -= STAMINA_DRAIN_POISONED
+                    print(f"[Poisoned: -{STATUS_DAMAGE_POISONED} health, -{STAMINA_DRAIN_POISONED} stamina]")
+                elif effect == "burning":
+                    self.state.health -= STATUS_DAMAGE_BURNING
+                    print(f"[Burning: -{STATUS_DAMAGE_BURNING} health]")
+                elif effect == "infected":
+                    self.state.health -= STATUS_DAMAGE_INFECTED
+                    self.state.max_health -= MAX_HEALTH_LOSS_INFECTED
+                    print(f"[Infected: -{STATUS_DAMAGE_INFECTED} health, max health reduced]")
                 
-                # Apply ongoing damage/effects
-                if effect == "bleeding" and turns > 0:
-                    self.state.health -= 3
-                    print(f"[Bleeding: -{3} health]")
-                elif effect == "poisoned" and turns > 0:
-                    self.state.health -= 5
-                    self.state.stamina -= 5
-                    print(f"[Poisoned: -{5} health, -{5} stamina]")
-                elif effect == "burning" and turns > 0:
-                    self.state.health -= 8
-                    print(f"[Burning: -{8} health]")
-                elif effect == "infected" and turns > 0:
-                    self.state.health -= 4
-                    self.state.max_health -= 1
-                    print(f"[Infected: -{4} health, max health reduced]")
+                # Now decrement the turn counter
+                self.state.status_effects[effect] = turns - 1
         
         # Hunger increases over time
         if self.state.turn_count % 5 == 0:
@@ -3245,10 +3256,11 @@ The dungeon claims another victim.""",
                 if self.state.health <= 0:
                     return "death_hypothermia"
         
-        # Equipment durability
+        # Equipment durability - only track weapon, armor, light
+        # (accessories and offhand items don't degrade)
         if self.state.turn_count % 8 == 0:
             for slot in ["weapon", "armor", "light"]:
-                if self.state.equipped[slot] and self.state.equipment_durability[slot] > 0:
+                if self.state.equipped[slot] and self.state.equipment_durability.get(slot, 0) > 0:
                     self.state.equipment_durability[slot] -= 5
                     if self.state.equipment_durability[slot] <= 0:
                         print(f"[Your {slot} breaks from wear!]")
