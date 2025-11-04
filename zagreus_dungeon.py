@@ -17,6 +17,14 @@ FIND_CHANCE_WITHOUT_LIGHT = 10
 MAX_INPUT_LENGTH = 500
 MAX_INPUT_RETRIES = 5
 
+# Status effect damage constants
+STATUS_DAMAGE_BLEEDING = 3
+STATUS_DAMAGE_POISONED = 5
+STATUS_DAMAGE_BURNING = 8
+STATUS_DAMAGE_INFECTED = 4
+STAMINA_DRAIN_POISONED = 5
+MAX_HEALTH_LOSS_INFECTED = 1
+
 # Game state class
 class GameState:
     def __init__(self):
@@ -34,6 +42,20 @@ class GameState:
         self.wetness = 80  # starts wet from flood
         self.temperature = 40  # 0-100, 50 is neutral
         self.sanity = 70
+        self.fear = 20  # 0-100, affects Harvester detection
+        
+        # Status effects
+        self.status_effects = {
+            "bleeding": 0,  # turns remaining
+            "poisoned": 0,
+            "burning": 0,
+            "infected": 0,
+            "stunned": 0,
+            "blessed": 0,
+            "cursed": 0,
+            "hasted": 0,
+            "slowed": 0
+        }
         
         # Body parts
         self.left_arm = True
@@ -45,11 +67,28 @@ class GameState:
         
         # Inventory
         self.inventory = []
+        self.max_inventory = 10  # Weight/space limit
         self.equipped = {
             "weapon": None,
             "light": None,
             "armor": None,
-            "accessory": None
+            "accessory": None,
+            "offhand": None  # shield, secondary weapon, etc.
+        }
+        
+        # Equipment durability
+        self.equipment_durability = {
+            "weapon": 100,
+            "armor": 100,
+            "light": 100
+        }
+        
+        # Combat modifiers
+        self.combat_bonus = {
+            "damage": 0,
+            "defense": 0,
+            "accuracy": 0,
+            "critical_chance": 0
         }
         
         # Story flags
@@ -84,36 +123,89 @@ class DungeonMaster:
     def _evaluate_combat(self, action: str, context: Dict) -> Tuple[bool, str, Dict]:
         enemy = context.get("enemy", {})
         enemy_type = enemy.get("type", "unknown")
+        enemy_health = context.get("enemy_health", 40)
         
         effects = {"damage_taken": 0, "damage_dealt": 0, "status": []}
         
-        # Parse action intent
+        # Check for status effects affecting combat
+        accuracy_mod = 0
+        damage_mod = 0
+        
+        if self.state.status_effects["stunned"] > 0:
+            return (False, "You're stunned and cannot act effectively this turn!", effects)
+        
+        # Status effects that modify combat but don't deal damage here
+        # (damage is applied in process_node_effects)
+        if self.state.status_effects["hasted"] > 0:
+            accuracy_mod += 15
+            
+        if self.state.status_effects["slowed"] > 0:
+            accuracy_mod -= 15
+        
+        # Parse action intent - defensive actions
         if "dodge" in action or "evade" in action or "roll" in action:
-            success_chance = self.state.agility * 10 + (50 if self.state.equipped["light"] else 0)
+            success_chance = self.state.agility * 10 + (50 if self.state.equipped["light"] else 0) + accuracy_mod
             success_chance -= 20 if not self.state.left_leg or not self.state.right_leg else 0
+            success_chance -= 30 if self.state.wetness > 60 else 0  # slippery
             
             if random.randint(1, 100) < success_chance:
                 return (True, "You successfully dodge the attack!", effects)
             else:
                 effects["damage_taken"] = random.randint(10, 25)
+                if self.state.equipped["armor"]:
+                    effects["damage_taken"] = max(5, effects["damage_taken"] - 10)
                 return (False, f"You fail to dodge and take {effects['damage_taken']} damage!", effects)
         
-        # Attack actions
+        if "block" in action or "parry" in action or "defend" in action:
+            if not self.state.equipped["weapon"] and not self.state.equipped["offhand"]:
+                effects["damage_taken"] = random.randint(15, 30)
+                return (False, f"You have nothing to block with! Take {effects['damage_taken']} damage!", effects)
+            
+            block_chance = 60 + self.state.strength * 5 + accuracy_mod
+            if random.randint(1, 100) < block_chance:
+                effects["damage_taken"] = random.randint(2, 8)
+                return (True, f"You block the attack! Only take {effects['damage_taken']} damage!", effects)
+            else:
+                effects["damage_taken"] = random.randint(12, 20)
+                return (False, f"Your block fails! Take {effects['damage_taken']} damage!", effects)
+        
+        # Attack actions - targeting specific body parts
         weak_points = enemy.get("weaknesses", [])
+        
         if any(word in action for word in ["eye", "eyes"]):
-            if "eye" in weak_points or enemy_type == "rat":
-                damage = random.randint(20, 40) + self.state.strength
+            if "eye" in weak_points or enemy_type == "rat" or enemy_type == "ghoul":
+                damage = random.randint(20, 40) + self.state.strength + damage_mod
+                if self.state.equipped["weapon"]:
+                    damage += 15
                 effects["damage_dealt"] = damage
+                # Check for blinding effect
+                if random.randint(1, 100) > 70:
+                    effects["status"].append("enemy_blinded")
+                    return (True, f"You strike the creature's eye! Critical hit for {damage} damage! It's blinded!", effects)
                 return (True, f"You strike the creature's eye! Critical hit for {damage} damage!", effects)
             else:
-                effects["damage_taken"] = random.randint(5, 15)
-                return (False, f"The creature has no vulnerable eyes. It counters, dealing {effects['damage_taken']} damage!", effects)
+                hit_chance = 30 + self.state.agility * 3
+                if random.randint(1, 100) < hit_chance:
+                    damage = random.randint(10, 20) + self.state.strength
+                    effects["damage_dealt"] = damage
+                    return (True, f"You hit for {damage} damage, but eyes aren't its weak point.", effects)
+                else:
+                    effects["damage_taken"] = random.randint(5, 15)
+                    return (False, f"The creature has no vulnerable eyes. It counters, dealing {effects['damage_taken']} damage!", effects)
         
         if any(word in action for word in ["head", "skull", "brain"]):
-            hit_chance = 40 + self.state.agility * 5
+            hit_chance = 40 + self.state.agility * 5 + accuracy_mod
+            if self.state.equipped["light"]:
+                hit_chance += 20
+            
             if random.randint(1, 100) < hit_chance:
-                damage = random.randint(15, 30) + self.state.strength
+                damage = random.randint(15, 30) + self.state.strength + damage_mod
+                if self.state.equipped["weapon"]:
+                    damage += 10
                 effects["damage_dealt"] = damage
+                if random.randint(1, 100) > 85:
+                    effects["status"].append("enemy_stunned")
+                    return (True, f"You bash the creature's head for {damage} damage! It's stunned!", effects)
                 return (True, f"You bash the creature's head for {damage} damage!", effects)
             else:
                 effects["damage_taken"] = random.randint(10, 20)
@@ -121,31 +213,117 @@ class DungeonMaster:
         
         if any(word in action for word in ["leg", "legs", "knee"]):
             if "legs" in weak_points:
-                damage = random.randint(15, 25) + self.state.strength
+                damage = random.randint(15, 25) + self.state.strength + damage_mod
+                if self.state.equipped["weapon"]:
+                    damage += 8
                 effects["damage_dealt"] = damage
                 effects["status"].append("enemy_slowed")
                 return (True, f"You cripple its leg! {damage} damage and it's slowed!", effects)
             else:
                 damage = random.randint(5, 15) + self.state.strength
+                if self.state.equipped["weapon"]:
+                    damage += 5
                 effects["damage_dealt"] = damage
                 return (True, f"You hit its leg for {damage} damage.", effects)
+        
+        if any(word in action for word in ["throat", "neck"]):
+            hit_chance = 35 + self.state.agility * 4 + accuracy_mod
+            if random.randint(1, 100) < hit_chance:
+                damage = random.randint(25, 45) + self.state.strength + damage_mod
+                if self.state.equipped["weapon"]:
+                    damage += 20
+                effects["damage_dealt"] = damage
+                effects["status"].append("enemy_bleeding")
+                return (True, f"CRITICAL! You slash its throat for {damage} damage! It's bleeding out!", effects)
+            else:
+                effects["damage_taken"] = random.randint(15, 25)
+                return (False, f"You miss the critical strike! It savages you for {effects['damage_taken']} damage!", effects)
+        
+        # Fire attacks
+        if "fire" in action or "burn" in action or "torch" in action:
+            if self.state.equipped["light"] and "torch" in self.state.equipped["light"].lower():
+                if "fire" in weak_points or enemy_type == "ghoul":
+                    damage = random.randint(30, 50)
+                    effects["damage_dealt"] = damage
+                    effects["status"].append("enemy_burning")
+                    return (True, f"You set it ablaze! {damage} damage! It's burning!", effects)
+                else:
+                    damage = random.randint(10, 20)
+                    effects["damage_dealt"] = damage
+                    return (True, f"You burn it for {damage} damage, but it's not very effective.", effects)
+            else:
+                return (False, "You have no fire source!", effects)
+        
+        # Tactical actions
+        if "feint" in action or "fake" in action or "trick" in action:
+            trick_chance = 40 + self.state.mind * 8
+            if random.randint(1, 100) < trick_chance:
+                effects["status"].append("enemy_open")
+                return (True, "You successfully feint! The enemy is open for a follow-up attack!", effects)
+            else:
+                effects["damage_taken"] = random.randint(8, 16)
+                return (False, f"Your feint fails! You're exposed! Take {effects['damage_taken']} damage!", effects)
+        
+        if "grapple" in action or "wrestle" in action or "grab" in action:
+            if self.state.strength < 4:
+                return (False, "You're not strong enough to grapple effectively!", effects)
+            
+            grapple_chance = 50 + self.state.strength * 10 - (20 if enemy_type in ["ghoul", "harvester"] else 0)
+            if random.randint(1, 100) < grapple_chance:
+                effects["status"].append("enemy_grappled")
+                return (True, "You successfully grapple the creature! It's restrained!", effects)
+            else:
+                effects["damage_taken"] = random.randint(12, 22)
+                return (False, f"The grapple fails! It breaks free and strikes you for {effects['damage_taken']} damage!", effects)
         
         # Generic attack
         weapon_bonus = 10 if self.state.equipped["weapon"] else 0
         light_bonus = 10 if self.state.equipped["light"] else -20
-        damage = max(1, random.randint(5, 15) + self.state.strength + weapon_bonus + light_bonus)
-        effects["damage_dealt"] = damage
+        
+        # Critical hit chance
+        crit_chance = 5 + self.state.agility + self.state.combat_bonus["critical_chance"]
+        is_crit = random.randint(1, 100) <= crit_chance
+        
+        damage = max(1, random.randint(5, 15) + self.state.strength + weapon_bonus + light_bonus + damage_mod + self.state.combat_bonus["damage"])
+        
+        if is_crit:
+            damage = int(damage * 2)
+            effects["damage_dealt"] = damage
+            effects["status"].append("critical_hit")
+            return (True, f"CRITICAL HIT! You deal {damage} damage!", effects)
+        else:
+            effects["damage_dealt"] = damage
         
         # Counter attack chance
-        if random.randint(1, 100) > 50:
-            effects["damage_taken"] = random.randint(8, 18)
-            return (True, f"You deal {damage} damage but take {effects['damage_taken']} in return!", effects)
+        counter_chance = 50 - self.state.agility * 3 - accuracy_mod
+        if self.state.equipped["armor"]:
+            counter_chance -= 15
+            
+        if random.randint(1, 100) < counter_chance:
+            counter_damage = random.randint(8, 18)
+            if self.state.equipped["armor"]:
+                counter_damage = max(3, counter_damage - 8)
+            effects["damage_taken"] = counter_damage
+            return (True, f"You deal {damage} damage but take {counter_damage} in return!", effects)
         
         return (True, f"You strike for {damage} damage!", effects)
     
     def _evaluate_exploration(self, action: str, context: Dict) -> Tuple[bool, str, Dict]:
         effects = {}
         location = context.get("location", "unknown")
+        
+        # Stealth actions
+        if "sneak" in action or "stealth" in action or "quiet" in action:
+            stealth_chance = 40 + self.state.agility * 8
+            stealth_chance -= 20 if self.state.wetness > 50 else 0  # wet = noisy
+            stealth_chance -= 15 if self.state.equipped["armor"] else 0  # armor = noisy
+            stealth_chance += 10 if not self.state.equipped["light"] else -10  # light gives away
+            
+            if random.randint(1, 100) < stealth_chance:
+                return (True, "You move silently through the shadows, undetected.", effects)
+            else:
+                effects["detected"] = True
+                return (False, "You make noise! Something has noticed you!", effects)
         
         # Light-dependent actions
         if "search" in action or "look" in action or "examine" in action:
@@ -154,23 +332,130 @@ class DungeonMaster:
             
             if "search" in action:
                 find_chance = FIND_CHANCE_WITH_LIGHT if self.state.equipped["light"] else FIND_CHANCE_WITHOUT_LIGHT
+                find_chance += self.state.mind * 3  # perception
+                
                 if random.randint(1, 100) < find_chance:
                     effects["found_item"] = True
-                    return (True, "You find something useful in the darkness!", effects)
+                    items = ["healing herbs", "rusty dagger", "torch", "dried food", "rope", "lockpick"]
+                    effects["item_name"] = random.choice(items)
+                    return (True, f"You find {effects['item_name']}!", effects)
                 else:
                     return (False, "You search but find nothing of value.", effects)
         
         # Climbing/athletic actions
-        if "climb" in action or "jump" in action:
+        if "climb" in action or "jump" in action or "leap" in action:
             if not self.state.left_arm or not self.state.right_arm:
                 return (False, "You can't climb with your injured arms!", effects)
             
+            if not self.state.left_leg or not self.state.right_leg:
+                effects["difficulty"] = "very hard"
+                
             success_chance = self.state.agility * 8 + self.state.strength * 5
+            success_chance -= 20 if self.state.wetness > 60 else 0
+            success_chance -= 15 if self.state.stamina < 30 else 0
+            success_chance += 10 if self.state.equipped["rope"] else 0
+            
             if random.randint(1, 100) < success_chance:
+                effects["stamina_cost"] = 15
                 return (True, "You successfully make the climb!", effects)
             else:
                 effects["damage_taken"] = random.randint(10, 30)
+                effects["stamina_cost"] = 10
                 return (False, f"You fall! Taking {effects['damage_taken']} damage!", effects)
+        
+        # Swimming actions
+        if "swim" in action or "dive" in action or "underwater" in action:
+            swim_chance = 60 + self.state.stamina // 10
+            swim_chance -= 20 if self.state.equipped["armor"] else 0
+            swim_chance -= 30 if not self.state.left_arm or not self.state.right_arm else 0
+            
+            if random.randint(1, 100) < swim_chance:
+                effects["stamina_cost"] = 20
+                effects["wetness_increase"] = 20
+                return (True, "You swim successfully through the water.", effects)
+            else:
+                effects["damage_taken"] = random.randint(5, 15)
+                effects["stamina_cost"] = 25
+                effects["wetness_increase"] = 30
+                return (False, f"You struggle in the water! Taking {effects['damage_taken']} damage from exhaustion!", effects)
+        
+        # Persuasion/social actions
+        if "persuade" in action or "convince" in action or "talk" in action or "negotiate" in action:
+            persuasion_chance = 30 + self.state.mind * 7
+            persuasion_chance += 15 if self.state.sanity > 70 else -15  # sanity affects speech
+            
+            if random.randint(1, 100) < persuasion_chance:
+                return (True, "Your words seem to have an effect...", effects)
+            else:
+                return (False, "Your attempt to persuade fails to convince them.", effects)
+        
+        # Intelligence/puzzle actions
+        if "solve" in action or "decipher" in action or "puzzle" in action or "read" in action:
+            intelligence_chance = 30 + self.state.mind * 10
+            intelligence_chance += 20 if self.state.equipped["light"] else -30
+            intelligence_chance -= 20 if self.state.sanity < 50 else 0
+            
+            if random.randint(1, 100) < intelligence_chance:
+                effects["puzzle_solved"] = True
+                return (True, "You figure it out! The solution becomes clear.", effects)
+            else:
+                return (False, "The puzzle eludes you. You can't make sense of it.", effects)
+        
+        # Trap detection/disarming
+        if "trap" in action or "disarm" in action or "disable" in action:
+            trap_chance = 35 + self.state.agility * 6 + self.state.mind * 4
+            trap_chance += 25 if "lockpick" in str(self.state.inventory) else 0
+            
+            if random.randint(1, 100) < trap_chance:
+                return (True, "You successfully identify and disarm the trap!", effects)
+            else:
+                effects["damage_taken"] = random.randint(15, 35)
+                return (False, f"You trigger the trap! Taking {effects['damage_taken']} damage!", effects)
+        
+        # Healing/medical actions
+        if "heal" in action or "bandage" in action or "medicine" in action:
+            if "healing herbs" in str(self.state.inventory) or "medical supplies" in str(self.state.inventory):
+                effects["health_restored"] = random.randint(15, 30)
+                effects["remove_item"] = "healing herbs"
+                return (True, f"You treat your wounds, restoring {effects['health_restored']} health!", effects)
+            else:
+                effects["health_restored"] = random.randint(3, 8)
+                return (True, f"You do your best with no supplies, restoring {effects['health_restored']} health.", effects)
+        
+        # Breaking objects
+        if "break" in action or "smash" in action or "destroy" in action:
+            break_chance = 50 + self.state.strength * 10
+            break_chance += 20 if self.state.equipped["weapon"] else 0
+            
+            if random.randint(1, 100) < break_chance:
+                effects["object_broken"] = True
+                return (True, "You smash it apart!", effects)
+            else:
+                effects["damage_taken"] = random.randint(3, 10)
+                return (False, f"It doesn't break! You hurt yourself for {effects['damage_taken']} damage!", effects)
+        
+        # Listening/perception
+        if "listen" in action or "hear" in action:
+            perception_chance = 40 + self.state.mind * 8
+            perception_chance -= 30 if self.state.sanity < 40 else 0  # hallucinations
+            
+            if random.randint(1, 100) < perception_chance:
+                effects["information"] = "You hear something important..."
+                return (True, "You listen carefully and hear valuable information.", effects)
+            else:
+                return (False, "You hear only the ambient sounds of the dungeon.", effects)
+        
+        # Hiding
+        if "hide" in action or "conceal" in action:
+            hide_chance = 45 + self.state.agility * 7
+            hide_chance -= 25 if self.state.equipped["light"] else 0
+            hide_chance -= 15 if self.state.equipped["armor"] else 0
+            
+            if random.randint(1, 100) < hide_chance:
+                effects["hidden"] = True
+                return (True, "You find a hiding spot and conceal yourself.", effects)
+            else:
+                return (False, "There's nowhere to hide! You remain exposed!", effects)
         
         # Default
         return (True, "You attempt your action...", effects)
@@ -197,6 +482,1130 @@ class ZagreusGame:
     def _build_story_tree(self):
         """Build the massive story tree"""
         
+        # More complete paths to reduce missing nodes
+        self.nodes["past_ghoul_quick"] = StoryNode(
+            "past_ghoul_quick",
+            """You move past the ghoul's corpse quickly, not wanting to linger.
+The corridor continues ahead. You hear water dripping somewhere.
+The torch reveals three paths: left leads upward, center continues straight,
+right slopes downward.""",
+            [
+                {"text": "Take the upward path", "next": "upward_path"},
+                {"text": "Continue straight", "next": "straight_path"},
+                {"text": "Descend the right path", "next": "downward_path"},
+                {"text": "Search this area first", "next": "search_junction"},
+                {"text": "Custom action", "next": "custom_junction"}
+            ]
+        )
+        
+        self.nodes["rest_after_ghoul"] = StoryNode(
+            "rest_after_ghoul",
+            """You lean against the wall, breathing heavily. The fight took a lot out of you.
+Your hands shake. You're hurt but alive. After a few moments, your breathing steadies.
+
+Health recovered slightly. Stamina recovered.""",
+            [
+                {"text": "Search the area now", "next": "search_victim_body"},
+                {"text": "Continue onward", "next": "past_ghoul_quick"},
+                {"text": "Tend to your new wounds", "next": "tend_combat_wounds"},
+                {"text": "Custom action", "next": "custom_rest_combat"}
+            ]
+        )
+        
+        self.nodes["run_past_ghoul"] = StoryNode(
+            "run_past_ghoul",
+            """You use the ghoul's fear of fire to dash past it! You run down the corridor!
+The creature hisses but doesn't pursue immediately. You've bought yourself time.""",
+            [
+                {"text": "Keep running", "next": "run_from_ghoul"},
+                {"text": "Find a defensible position", "next": "find_defensive_spot"},
+                {"text": "Hide and ambush if it follows", "next": "ambush_setup"},
+                {"text": "Custom action", "next": "custom_past_ghoul"}
+            ]
+        )
+        
+        self.nodes["backing_away_ghoul"] = StoryNode(
+            "backing_away_ghoul",
+            """You back away slowly, torch held out defensively. The ghoul maintains distance,
+respecting the fire. You're in a stalemate. You reach a junction—you can go left or right.""",
+            [
+                {"text": "Take the left path quickly", "next": "left_from_ghoul"},
+                {"text": "Take the right path", "next": "right_from_ghoul"},
+                {"text": "Throw torch at it and run", "next": "torch_throw_run"},
+                {"text": "Stand ground and fight", "next": "fight_ghoul_torch"},
+                {"text": "Custom action", "next": "custom_ghoul_standoff"}
+            ]
+        )
+        
+        self.nodes["run_down_stairs"] = StoryNode(
+            "run_down_stairs",
+            """You dash down the stairs, taking them two at a time! The ghoul's claws scrape
+behind you! Down, down into darkness. The stairs end abruptly—you tumble forward!
+
+You land hard in complete darkness. The ghoul's shrieks echo from above but it
+doesn't follow down here. Something must scare even the ghouls about this place.""",
+            [
+                {"text": "Use your torch if you still have it", "next": "light_lower_level"},
+                {"text": "Feel your way in darkness", "next": "lower_level_dark"},
+                {"text": "Stay still and listen", "next": "listen_lower_level"},
+                {"text": "Custom action", "next": "custom_lower_level"}
+            ]
+        )
+        
+        self.nodes["door_escape"] = StoryNode(
+            "door_escape",
+            """You try the door—it's unlocked! You burst through and slam it behind you!
+You hear the ghoul crash against it. You throw the bolt. The door shudders but holds.
+
+You're in a guardroom. Empty. There's armor on a rack, weapons on the wall,
+and another door on the far side.""",
+            [
+                {"text": "Take armor and weapons", "next": "equip_guard_gear"},
+                {"text": "Go through the far door quickly", "next": "far_door_exit"},
+                {"text": "Search the room thoroughly", "next": "search_guardroom"},
+                {"text": "Barricade the door better", "next": "barricade_door"},
+                {"text": "Custom action", "next": "custom_guardroom_escape"}
+            ]
+        )
+        
+        self.nodes["squeeze_crack"] = StoryNode(
+            "squeeze_crack",
+            """You squeeze through the narrow crack in the wall! Your shoulders scrape painfully.
+You hear the ghoul's claws on the other side but it can't fit through!
+
+You're safe for now. You're in a narrow passage between walls. You can hear sounds
+from rooms on either side through the thin walls.""",
+            [
+                {"text": "Follow the passage", "next": "between_walls_passage"},
+                {"text": "Listen through the walls", "next": "listen_through_walls"},
+                {"text": "Look for a way into one of the rooms", "next": "find_wall_opening"},
+                {"text": "Custom action", "next": "custom_crack_passage"}
+            ]
+        )
+        
+        self.nodes["cornered_fight_ghoul"] = StoryNode(
+            "cornered_fight_ghoul",
+            """You're cornered! The ghoul knows it. It advances slowly, savoring your fear.
+You have no choice but to fight for your life!
+
+[DESPERATE COMBAT]""",
+            [
+                {"text": "Fight with everything you have", "next": "desperate_ghoul_fight"},
+                {"text": "Try a desperate gambit", "next": "desperate_gambit"},
+                {"text": "Surrender to death", "next": "death_combat"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["hide_from_ghoul"] = StoryNode(
+            "hide_from_ghoul",
+            """You find a dark alcove and press yourself into it, holding your breath.
+The ghoul's footsteps approach. It sniffs the air. Can it smell you?
+
+It stops right in front of your hiding spot...""",
+            [
+                {"text": "Stay perfectly still", "next": "hide_success_ghoul"},
+                {"text": "Leap out and attack by surprise", "next": "surprise_attack_ghoul"},
+                {"text": "Run before it finds you", "next": "run_from_hiding"},
+                {"text": "Custom action", "next": "custom_hiding"}
+            ]
+        )
+        
+        self.nodes["fight_ghoul_distance"] = StoryNode(
+            "fight_ghoul_distance",
+            """With some distance between you, you ready yourself for combat.
+The ghoul circles warily. This will be a tough fight.""",
+            [
+                {"text": "Attack aggressively", "next": "fight_ghoul_torch"},
+                {"text": "Fight defensively", "next": "defensive_ghoul_fight"},
+                {"text": "Try to lead it into a trap", "next": "trap_ghoul"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["torch_strike_wounded"] = StoryNode(
+            "torch_strike_wounded",
+            """You jump back and strike with the torch! The flame catches the wounded ghoul's
+face! It shrieks and falls backward. One more good hit should finish it!""",
+            [
+                {"text": "Finish it off", "next": "finish_ghoul"},
+                {"text": "Let it flee and escape yourself", "next": "let_ghoul_flee"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["stomp_ghoul"] = StoryNode(
+            "stomp_ghoul",
+            """You stomp down hard on the ghoul's head! CRACK! The creature goes limp.
+You've killed it! But in the process, you've hurt your leg badly.
+
+Victory, but at a cost. Leg injured. Movement impaired.""",
+            [
+                {"text": "Search the area", "next": "search_victim_body"},
+                {"text": "Tend to your leg", "next": "tend_leg_injury"},
+                {"text": "Move on despite the pain", "next": "past_ghoul_quick"},
+                {"text": "Custom action", "next": "custom_injured_victory"}
+            ]
+        )
+        
+        self.nodes["run_past_wounded_ghoul"] = StoryNode(
+            "run_past_wounded_ghoul",
+            """You run past the wounded ghoul while it's down! It swipes at you but misses!
+You're past it! You run down the corridor, putting distance between you and it.""",
+            [
+                {"text": "Keep running", "next": "run_from_ghoul"},
+                {"text": "Stop and catch your breath", "next": "catch_breath"},
+                {"text": "Find a place to hide", "next": "hide_from_ghoul"},
+                {"text": "Custom action", "next": "custom_escape_wounded"}
+            ]
+        )
+        
+        self.nodes["search_for_food"] = StoryNode(
+            "search_for_food",
+            """You search the area desperately for food. Your hunger is overwhelming.
+You find some mushrooms growing in the dark, damp corner. They could be edible...
+or deadly poisonous. You also spot some beetles crawling on the wall.""",
+            [
+                {"text": "Eat the mushrooms carefully", "next": "eat_mushrooms"},
+                {"text": "Eat the beetles—protein is protein", "next": "eat_beetles"},
+                {"text": "Search more before eating anything", "next": "search_more_food"},
+                {"text": "Resist and move on hungry", "next": "resist_eating"},
+                {"text": "Custom action", "next": "custom_food_search"}
+            ]
+        )
+        
+        self.nodes["past_ghoul_with_meat"] = StoryNode(
+            "past_ghoul_with_meat",
+            """You move on, the wrapped human flesh hidden in your pack.
+The weight of what you've done (or might do) presses on you.
+Your sanity is fragile. The dungeon changes people.""",
+            [
+                {"text": "Continue forward", "next": "past_ghoul_quick"},
+                {"text": "Examine your conscience", "next": "moral_reflection"},
+                {"text": "Search the victim's body anyway", "next": "search_victim_body"},
+                {"text": "Custom action", "next": "custom_dark_choice"}
+            ]
+        )
+        
+        self.nodes["throw_meat_away"] = StoryNode(
+            "throw_meat_away",
+            """You throw the wrapped meat away in disgust. What were you thinking?
+You're not a monster. Not yet. Your sanity stabilizes slightly.
+
+You've held onto your humanity. For now.""",
+            [
+                {"text": "Search for real food elsewhere", "next": "search_for_food"},
+                {"text": "Continue without eating", "next": "past_ghoul_quick"},
+                {"text": "Search the victim's body for supplies", "next": "search_victim_body"},
+                {"text": "Custom action", "next": "custom_throw_meat"}
+            ]
+        )
+        
+        self.nodes["meditate_sanity"] = StoryNode(
+            "meditate_sanity",
+            """You sit and try to center yourself. You focus on your breathing.
+In... out... You remember who you were. Who you are. Who you want to be.
+
+The whispers fade. Your sanity improves slightly. You're still in hell,
+but you're still you.""",
+            [
+                {"text": "Continue with renewed purpose", "next": "past_ghoul_quick"},
+                {"text": "Rest a bit longer", "next": "rest_longer"},
+                {"text": "Search the area now", "next": "search_victim_body"},
+                {"text": "Custom action", "next": "custom_meditate"}
+            ]
+        )
+        
+        self.nodes["rest_with_herbs"] = StoryNode(
+            "rest_with_herbs",
+            """You rest while the herbs work their healing magic. The pain in your side lessens.
+The bleeding has stopped. You feel significantly better.
+
+Health restored by 15! Infection risk reduced!""",
+            [
+                {"text": "Continue onward refreshed", "next": "equip_dagger_continue"},
+                {"text": "Take stock of your situation", "next": "assess_situation"},
+                {"text": "Custom action", "next": "custom_herbal_rest"}
+            ]
+        )
+        
+        self.nodes["herbs_for_later"] = StoryNode(
+            "herbs_for_later",
+            """You save the remaining herbs for later. Smart. Resources are precious here.
+
+Herbs added to inventory.""",
+            [
+                {"text": "Continue onward", "next": "equip_dagger_continue"},
+                {"text": "Custom action", "next": "custom_save_herbs"}
+            ]
+        )
+        
+        self.nodes["drink_all_water"] = StoryNode(
+            "drink_all_water",
+            """You drink all the water. It helps immensely! But now the waterskin is empty.
+You'll need to find more water eventually.
+
+Stamina fully restored! Thirst quenched!""",
+            [
+                {"text": "Continue onward", "next": "equip_dagger_continue"},
+                {"text": "Refill waterskin if possible", "next": "refill_water"},
+                {"text": "Custom action", "next": "custom_drink_all"}
+            ]
+        )
+        
+        self.nodes["water_clean_wound"] = StoryNode(
+            "water_clean_wound",
+            """You use some water to clean your wound. It stings but feels cleaner.
+The water is precious, but preventing infection is worth it.
+
+Infection risk reduced! Water partially used.""",
+            [
+                {"text": "Continue onward", "next": "equip_dagger_continue"},
+                {"text": "Bandage it as well", "next": "bandage_after_clean"},
+                {"text": "Custom action", "next": "custom_clean_wound"}
+            ]
+        )
+        
+        self.nodes["keep_note"] = StoryNode(
+            "keep_note",
+            """You carefully fold the note and keep it. The information about the Harvester
+and the trophy room might save your life.
+
+Note added to inventory.""",
+            [
+                {"text": "Continue onward", "next": "equip_dagger_continue"},
+                {"text": "Read it again more carefully", "next": "reread_note"},
+                {"text": "Custom action", "next": "custom_keep_note"}
+            ]
+        )
+        
+        self.nodes["hide_observe"] = StoryNode(
+            "hide_observe",
+            """You hide behind a pillar and observe. The three paths remain before you.
+You hear footsteps from the wide hallway getting closer.
+A foul smell wafts from the narrow passage.
+The stairs remain silent.""",
+            [
+                {"text": "Wait to see who's coming", "next": "wait_for_footsteps"},
+                {"text": "Take the foul passage while hidden", "next": "sewer_passage"},
+                {"text": "Descend the stairs quietly", "next": "descend_stairs"},
+                {"text": "Custom action", "next": "custom_hide_observe"}
+            ]
+        )
+        
+        self.nodes["attack_guard"] = StoryNode(
+            "attack_guard",
+            """You attack the guard without warning! He's caught by surprise!
+You have the advantage of initiative but he's trained and armored!
+
+[COMBAT]""",
+            [
+                {"text": "Go for his throat with dagger", "next": "guard_throat_attack"},
+                {"text": "Knock away his spear first", "next": "disarm_guard"},
+                {"text": "Tackle him to the ground", "next": "tackle_guard"},
+                {"text": "Custom action", "next": "custom_guard_combat"}
+            ]
+        )
+        
+        self.nodes["surrender_guard"] = StoryNode(
+            "surrender_guard",
+            """You drop your weapons and raise your hands. "I surrender."
+
+The guard looks relieved. "Finally, some sense. Come with me."
+He gestures with his spear toward a side door.
+
+Is this a trick? Or genuine mercy?""",
+            [
+                {"text": "Go with him peacefully", "next": "follow_guard"},
+                {"text": "Attack when his guard is down", "next": "betray_surrender"},
+                {"text": "Run at the last second", "next": "run_from_escort"},
+                {"text": "Custom action", "next": "custom_surrender"}
+            ]
+        )
+        
+        self.nodes["run_from_guard"] = StoryNode(
+            "run_from_guard",
+            """You turn and run! The guard shouts "Stop!" and gives chase!
+You run back the way you came. You can take the sewer or the stairs!""",
+            [
+                {"text": "Take the sewer passage", "next": "sewer_passage"},
+                {"text": "Take the stairs down", "next": "descend_stairs"},
+                {"text": "Turn and fight—running is futile", "next": "stop_and_fight_guard"},
+                {"text": "Custom action", "next": "custom_run_guard"}
+            ]
+        )
+
+        # Custom AI nodes for new content
+        self.nodes["custom_junction"] = "CUSTOM_AI"
+        self.nodes["custom_rest_combat"] = "CUSTOM_AI"
+        self.nodes["custom_past_ghoul"] = "CUSTOM_AI"
+        self.nodes["custom_ghoul_standoff"] = "CUSTOM_AI"
+        self.nodes["custom_lower_level"] = "CUSTOM_AI"
+        self.nodes["custom_guardroom_escape"] = "CUSTOM_AI"
+        self.nodes["custom_crack_passage"] = "CUSTOM_AI"
+        self.nodes["custom_hiding"] = "CUSTOM_AI"
+        self.nodes["custom_injured_victory"] = "CUSTOM_AI"
+        self.nodes["custom_escape_wounded"] = "CUSTOM_AI"
+        self.nodes["custom_food_search"] = "CUSTOM_AI"
+        self.nodes["custom_dark_choice"] = "CUSTOM_AI"
+        self.nodes["custom_throw_meat"] = "CUSTOM_AI"
+        self.nodes["custom_meditate"] = "CUSTOM_AI"
+        self.nodes["custom_herbal_rest"] = "CUSTOM_AI"
+        self.nodes["custom_save_herbs"] = "CUSTOM_AI"
+        self.nodes["custom_drink_all"] = "CUSTOM_AI"
+        self.nodes["custom_clean_wound"] = "CUSTOM_AI"
+        self.nodes["custom_keep_note"] = "CUSTOM_AI"
+        self.nodes["custom_hide_observe"] = "CUSTOM_AI"
+        self.nodes["custom_guard_combat"] = "CUSTOM_AI"
+        self.nodes["custom_surrender"] = "CUSTOM_AI"
+        self.nodes["custom_run_guard"] = "CUSTOM_AI"
+        
+        # Add more critical story completion nodes to fill gaps
+        # These complete major pathways
+        
+        self.nodes["appeal_guard"] = StoryNode(
+            "appeal_guard",
+            """You appeal to his humanity. "You're not like them. I can see it in your eyes.
+You don't want to be here either. We're both trapped by the Overseer.
+Help me escape and I'll help you get out too."
+
+The guard wavers. His grip on the spear loosens. "I... I have a family above.
+They'll kill them if I betray my post."
+
+You see genuine fear in his eyes.""",
+            [
+                {"text": "Offer to save his family too", "next": "promise_save_family"},
+                {"text": "Tell him his family is likely already dead", "next": "harsh_truth"},
+                {"text": "Back off and find another way", "next": "leave_guard_alone"},
+                {"text": "Custom action", "next": "custom_appeal"}
+            ]
+        )
+        
+        self.nodes["attack_distracted_guard"] = StoryNode(
+            "attack_distracted_guard",
+            """While he's distracted by your words, you strike! Your dagger flashes!
+The guard gasps, stumbling back. He's wounded but not dead. He raises his spear
+in defense, but he's slower now. Blood flows from his side.""",
+            [
+                {"text": "Press the attack", "next": "finish_wounded_guard"},
+                {"text": "Demand he surrender", "next": "demand_guard_yield"},
+                {"text": "Run while he's injured", "next": "run_from_wounded_guard"},
+                {"text": "Custom action", "next": "custom_wounded_guard"}
+            ]
+        )
+        
+        self.nodes["confront_overseer"] = StoryNode(
+            "confront_overseer",
+            """You burst through the door! The Overseer spins to face you!
+He's a tall man in a stained apron, holding surgical tools.
+Behind him, the trophy room is filled with jars containing... body parts.
+
+"Zagreus!" he says with genuine surprise. "You survived! Remarkable!
+You'll make an excellent addition to my collection!"
+
+He raises a strange device—it hums with energy.""",
+            [
+                {"text": "Attack him immediately", "next": "fight_overseer"},
+                {"text": "Dodge and find cover", "next": "cover_from_overseer"},
+                {"text": "Try to talk him down", "next": "talk_overseer"},
+                {"text": "Look for the key first", "next": "grab_key_quick"},
+                {"text": "Custom action", "next": "custom_overseer_fight"}
+            ]
+        )
+        
+        self.nodes["sneak_trophy_room"] = StoryNode(
+            "sneak_trophy_room",
+            """You open the door quietly and slip inside. The Overseer has his back to you,
+examining one of his horrific trophies. The key hangs on a hook near his desk.
+
+You could sneak to the key, or attack him from behind.""",
+            [
+                {"text": "Sneak to the key", "next": "steal_key_stealth"},
+                {"text": "Attack from behind", "next": "backstab_overseer"},
+                {"text": "Wait for better opportunity", "next": "wait_in_trophy_room"},
+                {"text": "Custom action", "next": "custom_sneak_trophy"}
+            ]
+        )
+        
+        self.nodes["listen_overseer"] = StoryNode(
+            "listen_overseer",
+            """You listen at the door. The Overseer is talking to himself:
+"The Harvester needs fresh eyes. These ones are too old. Ah, but where
+to find willing donors? Ha! Willing! As if anyone has a choice here.
+The experiments must continue. Immortality is within reach!"
+
+He's completely mad. And dangerous.""",
+            [
+                {"text": "Burst in now", "next": "confront_overseer"},
+                {"text": "Sneak in quietly", "next": "sneak_trophy_room"},
+                {"text": "Leave and find another way", "next": "avoid_overseer"},
+                {"text": "Custom action", "next": "custom_listen_overseer"}
+            ]
+        )
+        
+        # More custom AI nodes
+        self.nodes["custom_appeal"] = "CUSTOM_AI"
+        self.nodes["custom_overseer_fight"] = "CUSTOM_AI"
+        self.nodes["custom_sneak_trophy"] = "CUSTOM_AI"
+        self.nodes["custom_listen_overseer"] = "CUSTOM_AI"
+
+        # Continue adding more comprehensive paths
+        self.nodes["listen_darkness"] = StoryNode(
+            "listen_darkness",
+            """You hold perfectly still, barely breathing. You listen intently.
+The breathing is... wrong. Too deep. Too wet. Whatever it is, it's big.
+You hear it shift its weight. Claws scrape on stone. It's moving—but not toward you.
+It's circling. Hunting. It knows something is here but can't pinpoint you yet.""",
+            [
+                {"text": "Remain absolutely still", "next": "stay_frozen"},
+                {"text": "Try to move away silently", "next": "silent_retreat"},
+                {"text": "Feel for a weapon on the ground", "next": "feel_for_weapon"},
+                {"text": "Make a sudden loud noise to scare it", "next": "scare_creature"},
+                {"text": "Custom action", "next": "custom_dark_hunt"}
+            ]
+        )
+        
+        self.nodes["call_darkness"] = StoryNode(
+            "call_darkness",
+            """You call out: "Hello? Who's there?"
+
+The breathing stops. Complete silence. For a moment, nothing.
+Then a voice responds—human, but barely: "Leave... this place... while you can..."
+The voice is hoarse, pained. Someone else is trapped down here.""",
+            [
+                {"text": "Ask who they are", "next": "ask_identity"},
+                {"text": "Ask for help finding a way out", "next": "ask_help_escape"},
+                {"text": "Move toward the voice", "next": "approach_voice"},
+                {"text": "Move away from the voice—might be a trap", "next": "away_from_voice"},
+                {"text": "Custom action", "next": "custom_voice_dark"}
+            ]
+        )
+        
+        self.nodes["away_from_sound"] = StoryNode(
+            "away_from_sound",
+            """You feel your way along the wall, moving away from the breathing.
+Your hands find a passage—narrow but navigable. You slip into it.
+The breathing sound fades behind you. You've avoided whatever it was.
+
+The passage continues in darkness. You feel a breeze—air flow from somewhere ahead.""",
+            [
+                {"text": "Follow the breeze carefully", "next": "follow_breeze"},
+                {"text": "Continue feeling along the wall", "next": "continue_in_dark"},
+                {"text": "Rest against the wall briefly", "next": "rest_in_dark"},
+                {"text": "Custom action", "next": "custom_dark_passage"}
+            ]
+        )
+        
+        self.nodes["toward_breathing"] = StoryNode(
+            "toward_breathing",
+            """You move toward the breathing sound. Foolish or brave—hard to say.
+As you approach, you can smell it—rot, decay, and something chemical.
+Your foot hits something soft. You reach down. It's a body. Fresh. Still warm.
+
+The breathing is right above you. IT'S ON THE CEILING.""",
+            [
+                {"text": "Dive away immediately", "next": "dive_from_ceiling"},
+                {"text": "Look up into the darkness", "next": "look_up_ceiling"},
+                {"text": "Run blindly forward", "next": "blind_run"},
+                {"text": "Play dead next to the corpse", "next": "play_dead_ceiling"},
+                {"text": "Custom action", "next": "custom_ceiling_horror"}
+            ]
+        )
+        
+        self.nodes["curse_guard"] = StoryNode(
+            "curse_guard",
+            """You scream curses at him. "May the gods damn you! May your family suffer!
+May you die alone and forgotten, you coward!"
+
+The guard's face darkens with rage. "How dare you!" He picks up a rock.
+"Die then, prisoner!" He hurls it at your head!""",
+            [
+                {"text": "Dodge underwater", "next": "dodge_rock"},
+                {"text": "Catch the rock", "next": "catch_rock"},
+                {"text": "Take the hit and glare at him", "next": "take_rock_hit"},
+                {"text": "Beg for forgiveness", "next": "apologize_guard"},
+                {"text": "Custom action", "next": "custom_angry_guard"}
+            ]
+        )
+        
+        self.nodes["silent_stare"] = StoryNode(
+            "silent_stare",
+            """You say nothing. You just stare at him with cold, hard eyes.
+The guard shifts uncomfortably. Something in your gaze unsettles him.
+"What? Stop looking at me like that!" But you don't break eye contact.
+
+He wavers. "Fine! Rot down there for all I care!" He leaves abruptly.
+But he drops something in his haste—a small metal file for his spear.
+It falls into the water with a splash.""",
+            [
+                {"text": "Dive for the metal file", "next": "get_metal_file"},
+                {"text": "Ignore it and search for other exit", "next": "search_exit_urgent"},
+                {"text": "Custom action", "next": "custom_file_drop"}
+            ]
+        )
+        
+        self.nodes["bribe_guard_above"] = StoryNode(
+            "bribe_guard_above",
+            """You call up: "I have gold! Hidden! Pull me up and I'll tell you where!"
+
+The guard laughs. "Gold? In a prisoner cell? Nice try."
+"It's true! I hid it before they took me! Three hundred gold crowns!"
+
+He pauses. Greed wars with duty on his face. "...Where?"
+"Pull me up first!"
+"Tell me first!"
+
+You're at an impasse. The water rises to your chin.""",
+            [
+                {"text": "Make up a convincing location", "next": "lie_about_gold"},
+                {"text": "Tell him the truth—there is no gold", "next": "admit_no_gold"},
+                {"text": "Describe a trap location", "next": "trap_location"},
+                {"text": "Custom action", "next": "custom_bribe"}
+            ]
+        )
+        
+        self.nodes["swing_to_ledge"] = StoryNode(
+            "swing_to_ledge",
+            """You release the rope and swing your body toward the ledge!
+Your fingers catch the stone edge—barely! You hang there, scrambling for purchase.
+The guard stomps on your fingers! "No! You don't deserve to live!"
+
+Pain shoots through your hand but you don't let go.""",
+            [
+                {"text": "Grab his foot and pull him down", "next": "pull_guard_down"},
+                {"text": "Endure and pull yourself up", "next": "endure_and_climb"},
+                {"text": "Let go and drop to avoid being crushed", "next": "drop_from_ledge"},
+                {"text": "Bite his ankle", "next": "bite_guard"},
+                {"text": "Custom action", "next": "custom_ledge_struggle"}
+            ]
+        )
+        
+        self.nodes["rush_guard_guardroom"] = StoryNode(
+            "rush_guard_guardroom",
+            """You rush the guard before he can arm himself! You tackle him hard!
+Both of you crash into the weapon rack. Swords and spears clatter to the floor.
+You grapple, rolling across the ground. He's stronger than you expected.""",
+            [
+                {"text": "Grab a weapon from the fallen rack", "next": "grab_fallen_weapon"},
+                {"text": "Choke him with your hands", "next": "choke_guard"},
+                {"text": "Headbutt him", "next": "headbutt_guard"},
+                {"text": "Roll away and create distance", "next": "create_distance"},
+                {"text": "Custom action", "next": "custom_guardroom_fight"}
+            ]
+        )
+        
+        self.nodes["grab_weapon_rack"] = StoryNode(
+            "grab_weapon_rack",
+            """You dash to the weapon rack and grab a sword! It's heavier than you expected.
+The guard also grabs a sword. You face each other, weapons drawn.
+"I don't want to kill you," the guard says. "But I will if I must."
+
+He's trained. You're not. This will be difficult.""",
+            [
+                {"text": "Attack first aggressively", "next": "attack_guard_first"},
+                {"text": "Defend and wait for opening", "next": "defend_wait"},
+                {"text": "Throw the sword at him and run", "next": "throw_sword_run"},
+                {"text": "Try to talk him down mid-combat", "next": "talk_during_combat"},
+                {"text": "Custom action", "next": "custom_sword_duel"}
+            ]
+        )
+        
+        self.nodes["talk_down_guard"] = StoryNode(
+            "talk_down_guard",
+            """You raise your hands. "Please. I'm not your enemy. The Overseer is.
+He experiments on prisoners. He created the Harvester. How many good guards
+has that thing killed? We're both victims here."
+
+The guard hesitates. His sword lowers slightly. "The Harvester... it took my brother."
+Grief crosses his face. "I've wanted to leave this cursed place for months."
+
+You might be getting through to him.""",
+            [
+                {"text": "Offer to escape together", "next": "ally_guard"},
+                {"text": "Press the emotional advantage", "next": "press_emotion"},
+                {"text": "Attack while he's distracted by grief", "next": "attack_emotional_guard"},
+                {"text": "Custom action", "next": "custom_guard_emotion"}
+            ]
+        )
+        
+        self.nodes["run_exit_guardroom"] = StoryNode(
+            "run_exit_guardroom",
+            """You run for the exit door! The guard lunges, trying to grab you!
+His fingers brush your shoulder but you slip free! You burst through the door
+into another corridor. You hear him chasing behind you.
+
+You need to lose him—the corridor branches ahead.""",
+            [
+                {"text": "Take the left corridor", "next": "left_corridor"},
+                {"text": "Take the right corridor", "next": "right_corridor"},
+                {"text": "Find a place to hide", "next": "hide_from_guard"},
+                {"text": "Turn and fight in the corridor", "next": "corridor_fight"},
+                {"text": "Custom action", "next": "custom_corridor_chase"}
+            ]
+        )
+
+        # Add more complex survival scenarios
+        self.nodes["check_wounds_passage"] = StoryNode(
+            "check_wounds_passage",
+            """You examine yourself in the dim passage. You're in bad shape:
+- Deep puncture wound in your side (bleeding slowly)
+- Multiple cuts and scrapes (from the climb)
+- Bruised ribs (probably cracked)
+- Hypothermia symptoms (shivering, confusion)
+
+You need treatment soon or infection will set in. You also need to warm up.""",
+            [
+                {"text": "Tear clothing to bandage wounds", "next": "bandage_wounds_cloth"},
+                {"text": "Try to find herbs or medicine ahead", "next": "search_for_medicine"},
+                {"text": "Move quickly to generate warmth", "next": "move_for_warmth"},
+                {"text": "Rest despite the risk—you need recovery", "next": "risk_rest"},
+                {"text": "Custom action", "next": "custom_medical"}
+            ]
+        )
+        
+        self.nodes["look_back_grate"] = StoryNode(
+            "look_back_grate",
+            """You look back through the grate. The cell is completely flooded now.
+The water churns with the current of the drainage. If you'd waited even
+thirty seconds longer, you'd be dead. The corpse floats past the opening.
+
+You see something else too—an albino rat, swimming. It looks at you with
+intelligent eyes, almost like it's judging your choices. Then it disappears.""",
+            [
+                {"text": "Close the grate and continue", "next": "drainage_tunnel"},
+                {"text": "Leave it open in case you need to retreat", "next": "grate_open_continue"},
+                {"text": "Custom action", "next": "custom_look_back"}
+            ]
+        )
+        
+        self.nodes["save_health_potion"] = StoryNode(
+            "save_health_potion",
+            """You pocket the health potion for when you really need it.
+The knife is good quality—well-balanced for throwing or close combat.
+The dried meat should keep you from starving for now.
+
+Equipped: Steel knife
+Inventory: Health potion, dried meat
+
+The water reaches your chest. Time to find the way out!""",
+            [
+                {"text": "Search for exit with new confidence", "next": "find_drainage_grate"},
+                {"text": "Eat the dried meat now for energy", "next": "eat_dried_meat_safe"},
+                {"text": "Custom action", "next": "custom_equipped"}
+            ]
+        )
+        
+        self.nodes["knife_meat_only"] = StoryNode(
+            "knife_meat_only",
+            """You take the knife and meat, leaving the mysterious potion.
+Better safe than sorry—that liquid could be anything.
+The knife feels good in your hand. The meat is preserved well.
+
+Equipped: Steel knife
+Inventory: Dried meat
+
+The water continues to rise. You need to move now!""",
+            [
+                {"text": "Search for exit", "next": "find_drainage_grate"},
+                {"text": "Eat the meat for energy", "next": "eat_dried_meat_safe"},
+                {"text": "Custom action", "next": "custom_knife_only"}
+            ]
+        )
+        
+        self.nodes["eat_dried_meat"] = StoryNode(
+            "eat_dried_meat",
+            """You eat the dried meat immediately. Your hunger was worse than you realized.
+The meat is tough but flavorful—venison, properly cured.
+You feel significantly better. Energy returns to your limbs.
+
+Hunger reduced significantly! Stamina restored!
+
+The water is still rising though. You need to escape!""",
+            [
+                {"text": "Search for exit with renewed energy", "next": "find_drainage_grate"},
+                {"text": "Take the rest of the items and go", "next": "bundle_and_exit"},
+                {"text": "Custom action", "next": "custom_after_eating"}
+            ]
+        )
+
+        # Add more branching paths
+        self.nodes["bundle_and_exit"] = StoryNode(
+            "bundle_and_exit",
+            """You take the entire bundle, wrapping it carefully to keep it dry.
+No time to examine everything now—the water is at your shoulders!
+You need to find the drainage grate or underwater passage immediately!""",
+            [
+                {"text": "Search frantically for the grate", "next": "find_drainage_grate"},
+                {"text": "Dive underwater for passage", "next": "underwater_passage"},
+                {"text": "Custom action", "next": "custom_bundle_urgent"}
+            ]
+        )
+        
+        self.nodes["continue_wall_search"] = StoryNode(
+            "continue_wall_search",
+            """You leave the bundle and continue searching. Bad choice.
+The water is rising fast—past your shoulders, past your neck.
+You find nothing else. The water reaches your mouth. Your chin. Your nose.
+
+You have mere seconds to act!""",
+            [
+                {"text": "Go back for the bundle", "next": "rush_back_bundle"},
+                {"text": "Dive for underwater passage", "next": "dive_last_chance"},
+                {"text": "Scream for help one last time", "next": "final_scream"},
+                {"text": "Custom action", "next": "custom_last_moment"}
+            ]
+        )
+
+        # More custom AI nodes
+        self.nodes["custom_iron_maiden"] = "CUSTOM_AI"
+        self.nodes["custom_wound_care"] = "CUSTOM_AI"
+        self.nodes["custom_journal"] = "CUSTOM_AI"
+        self.nodes["custom_post_distract"] = "CUSTOM_AI"
+        self.nodes["custom_chase"] = "CUSTOM_AI"
+        self.nodes["custom_resist_cannibalism"] = "CUSTOM_AI"
+        self.nodes["custom_meat_decision"] = "CUSTOM_AI"
+        self.nodes["custom_insane_chamber"] = "CUSTOM_AI"
+        self.nodes["custom_fight_madness"] = "CUSTOM_AI"
+        self.nodes["custom_herbs"] = "CUSTOM_AI"
+        self.nodes["custom_waterskin"] = "CUSTOM_AI"
+        self.nodes["custom_note"] = "CUSTOM_AI"
+        self.nodes["custom_sewer_entrance"] = "CUSTOM_AI"
+        self.nodes["custom_lower_stairs"] = "CUSTOM_AI"
+        self.nodes["custom_betrayal"] = "CUSTOM_AI"
+        self.nodes["custom_guard_patience"] = "CUSTOM_AI"
+        self.nodes["custom_dark_hunt"] = "CUSTOM_AI"
+        self.nodes["custom_voice_dark"] = "CUSTOM_AI"
+        self.nodes["custom_dark_passage"] = "CUSTOM_AI"
+        self.nodes["custom_ceiling_horror"] = "CUSTOM_AI"
+        self.nodes["custom_angry_guard"] = "CUSTOM_AI"
+        self.nodes["custom_file_drop"] = "CUSTOM_AI"
+        self.nodes["custom_bribe"] = "CUSTOM_AI"
+        self.nodes["custom_ledge_struggle"] = "CUSTOM_AI"
+        self.nodes["custom_guardroom_fight"] = "CUSTOM_AI"
+        self.nodes["custom_sword_duel"] = "CUSTOM_AI"
+        self.nodes["custom_guard_emotion"] = "CUSTOM_AI"
+        self.nodes["custom_corridor_chase"] = "CUSTOM_AI"
+        self.nodes["custom_medical"] = "CUSTOM_AI"
+        self.nodes["custom_look_back"] = "CUSTOM_AI"
+        self.nodes["custom_equipped"] = "CUSTOM_AI"
+        self.nodes["custom_knife_only"] = "CUSTOM_AI"
+        self.nodes["custom_after_eating"] = "CUSTOM_AI"
+        self.nodes["custom_bundle_urgent"] = "CUSTOM_AI"
+        self.nodes["custom_last_moment"] = "CUSTOM_AI"
+
+        # Add more comprehensive death scenarios
+        self.nodes["death_hypothermia"] = StoryNode(
+            "death_hypothermia",
+            """The cold finally takes you. Your wet clothes sapped all warmth from your body.
+You stop shivering—not a good sign. Warmth spreads through you... a lie your body tells.
+You lie down to rest. Just for a moment. You never wake up.
+
+CAUSE OF DEATH: Hypothermia
+SURVIVAL TIME: varies
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["death_wounds"] = StoryNode(
+            "death_wounds",
+            """You've accumulated too many injuries. Blood loss, pain, infection—your body
+gives up. You collapse, unable to continue. The dungeon floor is cold against your cheek.
+You close your eyes...
+
+CAUSE OF DEATH: Multiple wounds and blood loss
+SURVIVAL TIME: varies
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        # Add all the missing story nodes referenced in the game
+        self.nodes["eat_dried_meat_safe"] = StoryNode(
+            "eat_dried_meat_safe",
+            """You eat the dried meat. It's properly preserved—no mold, no poison.
+The nutrition helps significantly. You feel your strength returning.
+
+Hunger reduced by 40! Health restored by 10!""",
+            [
+                {"text": "Continue searching for exit", "next": "find_drainage_grate"},
+                {"text": "Feel energized to explore more", "next": "bundle_and_exit"},
+                {"text": "Custom action", "next": "custom_after_safe_meat"}
+            ]
+        )
+        
+        self.nodes["surface_for_air"] = StoryNode(
+            "surface_for_air",
+            """You surface, gasping for air. Your lungs burn. The water continues to rise.
+You've located the underwater passage but need to commit to swimming through it
+before the cell fills completely.""",
+            [
+                {"text": "Take a deep breath and go for it", "next": "underwater_passage"},
+                {"text": "Search for another way", "next": "panic_search"},
+                {"text": "Custom action", "next": "custom_surface"}
+            ]
+        )
+        
+        self.nodes["feel_passage_entrance"] = StoryNode(
+            "feel_passage_entrance",
+            """You feel around the passage entrance underwater. It's narrow—very narrow.
+You'll have to squeeze through, and there's no guarantee of air on the other side.
+Your lungs are already burning. Decision time!""",
+            [
+                {"text": "Swim through immediately", "next": "underwater_passage"},
+                {"text": "Surface for one more breath first", "next": "surface_for_air"},
+                {"text": "Give up and find the grate instead", "next": "panic_search"},
+                {"text": "Custom action", "next": "custom_passage_feel"}
+            ]
+        )
+        
+        self.nodes["rest_after_climb"] = StoryNode(
+            "rest_after_climb",
+            """You rest against the cold stone, catching your breath. The climb took everything
+out of you. Your muscles shake with exhaustion. But you made it. You're out of the cell.
+
+Stamina recovered partially.""",
+            [
+                {"text": "Continue when ready", "next": "drainage_tunnel"},
+                {"text": "Check your wounds while resting", "next": "check_wounds_passage"},
+                {"text": "Custom action", "next": "custom_rest_climb"}
+            ]
+        )
+        
+        self.nodes["assess_new_chamber"] = StoryNode(
+            "assess_new_chamber",
+            """You catch your breath and look around. You're in a circular chamber with a domed
+ceiling. Phosphorescent moss provides dim light. Three passages lead out of this room.
+There are ancient carvings on the walls—warnings, you think.""",
+            [
+                {"text": "Examine the carvings", "next": "examine_chamber_carvings"},
+                {"text": "Take the left passage", "next": "left_chamber_passage"},
+                {"text": "Take the center passage", "next": "center_chamber_passage"},
+                {"text": "Take the right passage", "next": "right_chamber_passage"},
+                {"text": "Rest here briefly", "next": "rest_chamber"},
+                {"text": "Custom action", "next": "custom_chamber"}
+            ]
+        )
+        
+        self.nodes["crawl_from_water"] = StoryNode(
+            "crawl_from_water",
+            """You drag yourself out of the water onto a stone ledge. You're soaked, freezing,
+and exhausted, but alive. You lie there for a moment, just breathing.
+You made it through the underwater passage. Barely.""",
+            [
+                {"text": "Assess your surroundings", "next": "assess_new_chamber"},
+                {"text": "Try to warm yourself", "next": "warm_yourself"},
+                {"text": "Check inventory—did you lose anything?", "next": "check_inventory_swim"},
+                {"text": "Custom action", "next": "custom_crawl_water"}
+            ]
+        )
+        
+        self.nodes["bash_lock_desperate"] = StoryNode(
+            "bash_lock_desperate",
+            """You bash the lock with your fists! Pain shoots through your hands!
+The lock doesn't budge. The water is at your lips now. You're out of time!
+
+This isn't working!""",
+            [
+                {"text": "Dive for underwater passage—last chance!", "next": "dive_last_chance"},
+                {"text": "Keep bashing—it has to work!", "next": "death_drowning"},
+                {"text": "Custom action", "next": "custom_bash_lock"}
+            ]
+        )
+        
+        self.nodes["rinse_wound_water"] = StoryNode(
+            "rinse_wound_water",
+            """You use water from the drainage tunnel to rinse your wound.
+It's not clean water—this might make things worse. But you do your best.
+
+Risk of infection increased slightly.""",
+            [
+                {"text": "Continue onward", "next": "drainage_tunnel"},
+                {"text": "Try to bandage it as well", "next": "bind_wound_cloth"},
+                {"text": "Custom action", "next": "custom_rinse"}
+            ]
+        )
+        
+        self.nodes["bind_wound_cloth"] = StoryNode(
+            "bind_wound_cloth",
+            """You tear strips from your already tattered clothes and bind your wound tightly.
+It's not medical care, but it helps stop the bleeding.
+
+Bleeding reduced. Health stabilized.""",
+            [
+                {"text": "Continue forward", "next": "drainage_tunnel"},
+                {"text": "Rest briefly", "next": "rest_tunnel"},
+                {"text": "Custom action", "next": "custom_bind"}
+            ]
+        )
+        
+        self.nodes["decipher_symbols"] = StoryNode(
+            "decipher_symbols",
+            """You study the symbols intensely. With time, patterns emerge:
+"Seven seals protect the deep. Seven keys unlock the way.
+The Harvester walks between walls. Fire blinds its many eyes.
+The Overseer's throne sits above bones. His key opens all doors."
+
+This is valuable information about the dungeon's layout and secrets.""",
+            [
+                {"text": "Memorize this and continue", "next": "torch_corridor"},
+                {"text": "Look for more symbols", "next": "search_more_symbols"},
+                {"text": "Custom action", "next": "custom_decipher"}
+            ]
+        )
+        
+        self.nodes["touch_symbols"] = StoryNode(
+            "touch_symbols",
+            """You trace the glowing symbols with your finger. They're warm!
+As you touch them, they glow brighter. Suddenly, a hidden compartment opens
+in the wall—you triggered a mechanism! Inside, you find a small glass vial
+containing glowing blue liquid.""",
+            [
+                {"text": "Take the vial carefully", "next": "take_mysterious_vial"},
+                {"text": "Leave it—could be cursed", "next": "leave_vial"},
+                {"text": "Drink it immediately", "next": "drink_mystery_vial"},
+                {"text": "Custom action", "next": "custom_vial"}
+            ]
+        )
+        
+        self.nodes["sneak_past_guard"] = StoryNode(
+            "sneak_past_guard",
+            """You move like a shadow, holding your breath. The guard snores softly.
+Step by careful step, you edge past him. Your heart pounds.
+You're almost past—then your foot bumps an empty bottle!
+
+The guard stirs. His eyes begin to open!""",
+            [
+                {"text": "Freeze completely", "next": "freeze_guard"},
+                {"text": "Run for it!", "next": "run_from_waking_guard"},
+                {"text": "Attack him while he's vulnerable", "next": "attack_sleeping_guard"},
+                {"text": "Hide quickly", "next": "hide_near_guard"},
+                {"text": "Custom action", "next": "custom_guard_wake"}
+            ]
+        )
+        
+        self.nodes["side_passage_down"] = StoryNode(
+            "side_passage_down",
+            """You take the narrow side passage. It slopes steeply downward.
+The walls close in. You have to turn sideways to fit through in places.
+The passage eventually opens into a larger space—you smell something terrible.
+
+You've entered what appears to be a mass grave. Bodies everywhere.""",
+            [
+                {"text": "Search the bodies for items", "next": "search_mass_grave"},
+                {"text": "Leave immediately—this is cursed", "next": "flee_mass_grave"},
+                {"text": "Say a prayer for the dead", "next": "pray_for_dead"},
+                {"text": "Look for a way through", "next": "navigate_grave"},
+                {"text": "Custom action", "next": "custom_mass_grave"}
+            ]
+        )
+        
+        self.nodes["observe_guard"] = StoryNode(
+            "observe_guard",
+            """You watch the guard carefully. He's older, tired. He keeps checking a locket
+around his neck—a picture of someone. A daughter, perhaps?
+He seems sad rather than cruel. Every few minutes, he glances nervously
+at a doorway to his right. He's afraid of something.""",
+            [
+                {"text": "Approach him openly and talk", "next": "approach_guard_talk"},
+                {"text": "Sneak past while he's distracted", "next": "sneak_past_guard"},
+                {"text": "Investigate what he fears", "next": "investigate_door"},
+                {"text": "Custom action", "next": "custom_observe"}
+            ]
+        )
+        
+        # Add more complete combat paths
+        self.nodes["chain_second_strike"] = StoryNode(
+            "chain_second_strike",
+            """You swing the chain again with all your might! This time you catch it around
+the ghoul's neck! You pull tight, choking it! The creature thrashes wildly,
+claws raking the air. It's weakening!""",
+            [
+                {"text": "Keep choking until it stops moving", "next": "strangle_ghoul_death"},
+                {"text": "Throw it against the wall", "next": "wall_slam_ghoul"},
+                {"text": "Release and finish with torch", "next": "chain_to_torch_finish"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["switch_to_torch"] = StoryNode(
+            "switch_to_torch",
+            """You drop the chain and grab the torch with both hands! The ghoul lunges!
+You thrust the flame into its face! It shrieks and recoils, but it's not done yet!""",
+            [
+                {"text": "Press the attack with fire", "next": "ghoul_eyes_torch"},
+                {"text": "Create distance and reassess", "next": "create_combat_distance"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["strangle_ghoul"] = StoryNode(
+            "strangle_ghoul",
+            """You wrap the chain around the ghoul's throat and pull! It gags and claws
+at the chain. You hold on with all your strength. It's a battle of endurance now.
+Your muscles burn. The ghoul weakens. It's almost done!""",
+            [
+                {"text": "Hold on until it dies", "next": "strangle_ghoul_death"},
+                {"text": "Let go and escape while it's weak", "next": "escape_weak_ghoul"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["retreat_from_ghoul"] = StoryNode(
+            "retreat_from_ghoul",
+            """You back away from the fight, creating distance. The ghoul circles you warily.
+You have a moment to think. You're wounded. It's wounded. This could go either way.""",
+            [
+                {"text": "Continue fighting more carefully", "next": "fight_ghoul_torch"},
+                {"text": "Run while you can", "next": "run_from_ghoul"},
+                {"text": "Try to negotiate somehow", "next": "talk_to_ghoul"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["finish_burning_ghoul"] = StoryNode(
+            "finish_burning_ghoul",
+            """While it's on fire and panicking, you strike again! You bash it with the torch!
+The creature falls, flames consuming its dry flesh. It twitches once, twice, then stills.
+
+Victory! But you're hurt and tired. Combat is exhausting.""",
+            [
+                {"text": "Search the area", "next": "search_victim_body"},
+                {"text": "Rest and recover", "next": "rest_after_ghoul"},
+                {"text": "Move on quickly", "next": "past_ghoul_quick"},
+                {"text": "Custom action", "next": "custom_post_combat"}
+            ]
+        )
+        
+        self.nodes["escape_burning_ghoul"] = StoryNode(
+            "escape_burning_ghoul",
+            """While it's distracted by the flames, you run! The ghoul's shrieks echo behind you
+but you don't look back. You've escaped but didn't finish it. It might recover.""",
+            [
+                {"text": "Keep running", "next": "run_from_ghoul"},
+                {"text": "Find a place to hide", "next": "hide_from_ghoul"},
+                {"text": "Custom action", "next": "custom_escape_combat"}
+            ]
+        )
+
+        # Add custom AI nodes for new paths
+        self.nodes["custom_after_safe_meat"] = "CUSTOM_AI"
+        self.nodes["custom_surface"] = "CUSTOM_AI"
+        self.nodes["custom_passage_feel"] = "CUSTOM_AI"
+        self.nodes["custom_rest_climb"] = "CUSTOM_AI"
+        self.nodes["custom_chamber"] = "CUSTOM_AI"
+        self.nodes["custom_crawl_water"] = "CUSTOM_AI"
+        self.nodes["custom_bash_lock"] = "CUSTOM_AI"
+        self.nodes["custom_rinse"] = "CUSTOM_AI"
+        self.nodes["custom_bind"] = "CUSTOM_AI"
+        self.nodes["custom_decipher"] = "CUSTOM_AI"
+        self.nodes["custom_vial"] = "CUSTOM_AI"
+        self.nodes["custom_guard_wake"] = "CUSTOM_AI"
+        self.nodes["custom_mass_grave"] = "CUSTOM_AI"
+        self.nodes["custom_observe"] = "CUSTOM_AI"
+        self.nodes["custom_post_combat"] = "CUSTOM_AI"
+        self.nodes["custom_escape_combat"] = "CUSTOM_AI"
+
         # Starting node - flooded cell
         self.nodes["start"] = StoryNode(
             "start",
@@ -845,6 +2254,839 @@ The dungeon claims another victim.""",
             [{"text": "Start over", "next": "restart"}]
         )
         
+        # Add missing nodes that are referenced but not defined
+        self.nodes["feel_walls"] = StoryNode(
+            "feel_walls",
+            """You press your hands against the cold, slimy stone walls, feeling desperately
+for any crack, ledge, or opening. Your fingers trace ancient carvings—symbols you 
+don't recognize. Then you feel it: a small recess, almost like a handhold.
+Above it, what feels like another. Someone carved climbing holds into the wall!""",
+            [
+                {"text": "Attempt to climb out of the rising water", "next": "climb_wall_holds"},
+                {"text": "Feel further along the wall for something else", "next": "continue_feeling_wall"},
+                {"text": "Give up and search the water instead", "next": "search_cell_water"},
+                {"text": "Custom action", "next": "custom_feel_walls"}
+            ]
+        )
+        
+        self.nodes["climb_wall_holds"] = StoryNode(
+            "climb_wall_holds",
+            """You grip the carved holds and pull yourself up out of the water.
+Your wounded side screams in protest, but fear drives you upward.
+Hand over hand, you climb in complete darkness. The holds are slippery with algae.
+Suddenly, your hand slips! You're dangling by one arm, twelve feet above the water.""",
+            [
+                {"text": "Pull yourself back up with sheer willpower", "next": "successful_climb"},
+                {"text": "Drop back into the water safely", "next": "back_to_water"},
+                {"text": "Try to swing to grab another hold", "next": "swing_for_hold"},
+                {"text": "Custom action", "next": "custom_climb"}
+            ]
+        )
+        
+        self.nodes["successful_climb"] = StoryNode(
+            "successful_climb",
+            """With a desperate surge of strength, you pull yourself up.
+You find the next hold, and the next. Finally, your head bumps against something—
+a grate! You push it open and haul yourself through into a narrow passage.
+You collapse, gasping and shaking. Behind you, water pours through the opening.
+You made it out, but barely. The passage ahead is dark and cramped.""",
+            [
+                {"text": "Crawl forward immediately", "next": "drainage_tunnel"},
+                {"text": "Rest and examine your wounds", "next": "check_wounds_passage"},
+                {"text": "Look back through the grate", "next": "look_back_grate"},
+                {"text": "Custom action", "next": "custom_after_climb"}
+            ]
+        )
+        
+        self.nodes["continue_feeling_wall"] = StoryNode(
+            "continue_feeling_wall",
+            """You continue feeling along the wall, ignoring the climbing holds.
+Further along, your hand finds something else—a small alcove.
+Inside it, you feel fabric. A bundle of some kind, wrapped in oilcloth.
+It's been placed here deliberately, hidden from casual inspection.""",
+            [
+                {"text": "Unwrap the bundle carefully", "next": "unwrap_hidden_bundle"},
+                {"text": "Take it and search for an exit first", "next": "bundle_and_exit"},
+                {"text": "Leave it and keep searching", "next": "continue_wall_search"},
+                {"text": "Custom action", "next": "custom_bundle"}
+            ]
+        )
+        
+        self.nodes["unwrap_hidden_bundle"] = StoryNode(
+            "unwrap_hidden_bundle",
+            """You unwrap the oilcloth bundle. Inside, you find:
+- A pristine steel knife, freshly oiled and sharp
+- A vial of red liquid (labeled "Health" in rough script)
+- A tightly wrapped piece of dried meat
+- A note: "For those who search—there is always hope. -M"
+
+Someone hid this for escaped prisoners. How many others tried before you?""",
+            [
+                {"text": "Take everything and drink the health potion", "next": "drink_health_potion"},
+                {"text": "Take everything but save the potion", "next": "save_health_potion"},
+                {"text": "Take only the knife and meat", "next": "knife_meat_only"},
+                {"text": "Eat the dried meat immediately", "next": "eat_dried_meat"},
+                {"text": "Custom action", "next": "custom_hidden_items"}
+            ]
+        )
+        
+        self.nodes["drink_health_potion"] = StoryNode(
+            "drink_health_potion",
+            """You uncork the vial and drink. The liquid burns going down, but warmth
+spreads through your body. Your wound knits slightly—not completely, but enough
+to stop the bleeding. You feel stronger, more alert. Health restored significantly!
+
+The water is at your shoulders now. Time to move!""",
+            [
+                {"text": "Search for exit with renewed vigor", "next": "find_drainage_grate"},
+                {"text": "Dive underwater to find a way out", "next": "underwater_passage"},
+                {"text": "Custom action", "next": "custom_after_potion"}
+            ]
+        )
+        
+        self.nodes["stand_conserve"] = StoryNode(
+            "stand_conserve",
+            """You stand still, trying to conserve your energy and warmth.
+The cold water saps your strength with every passing second.
+You shiver uncontrollably. Your wound throbs with each heartbeat.
+The water rises past your waist... your chest... your neck...
+
+You realize this was a mistake. You need to act NOW!""",
+            [
+                {"text": "Frantically search for an exit", "next": "panic_search"},
+                {"text": "Dive down to find underwater passage", "next": "underwater_passage"},
+                {"text": "Call for help desperately", "next": "scream_help"},
+                {"text": "Custom action", "next": "custom_panic"}
+            ]
+        )
+        
+        self.nodes["panic_search"] = StoryNode(
+            "panic_search",
+            """You thrash through the water, hands scrambling against the walls.
+Your panic makes you clumsy. You slip, go under, come up choking.
+The water is at your chin. In your frantic search, your hand finds—
+a drainage grate near the ceiling! The water flows through it!""",
+            [
+                {"text": "Try to open it desperately", "next": "find_drainage_grate"},
+                {"text": "Take a deep breath and dive for another way", "next": "underwater_passage"},
+                {"text": "Custom action", "next": "custom_grate_panic"}
+            ]
+        )
+        
+        self.nodes["dive_underwater"] = StoryNode(
+            "dive_underwater",
+            """You take a deep breath and plunge beneath the murky water.
+In the absolute darkness, you feel your way along the bottom.
+Your lungs begin to burn. You feel stone, slime, and then—
+a current! Water is being pulled somewhere. An underwater passage!""",
+            [
+                {"text": "Follow the current through the passage", "next": "underwater_passage"},
+                {"text": "Surface for air first", "next": "surface_for_air"},
+                {"text": "Feel around the passage entrance", "next": "feel_passage_entrance"},
+                {"text": "Custom action", "next": "custom_underwater"}
+            ]
+        )
+        
+        self.nodes["underwater_passage"] = StoryNode(
+            "underwater_passage",
+            """You swim into the underwater passage. The current pulls you along.
+Your lungs scream for air. The passage is narrow—you scrape against the sides.
+Just when you think you'll drown, your head breaks the surface!
+
+You gasp and cough, pulling yourself up onto a stone ledge. You're in a larger
+chamber now, completely dark. Water drips from stalactites above. You hear... 
+something moving in the darkness. Breathing that isn't yours.""",
+            [
+                {"text": "Stay perfectly still and listen", "next": "listen_darkness"},
+                {"text": "Call out to whatever is there", "next": "call_darkness"},
+                {"text": "Feel your way along the wall away from the sound", "next": "away_from_sound"},
+                {"text": "Move toward the breathing sound", "next": "toward_breathing"},
+                {"text": "Custom action", "next": "custom_dark_chamber"}
+            ]
+        )
+        
+        self.nodes["scream_help"] = StoryNode(
+            "scream_help",
+            """You scream at the top of your lungs. "HELP! SOMEONE HELP ME!"
+Your voice echoes off the stone walls, but no reply comes.
+Wait... you hear footsteps above. Someone is coming!
+
+A grating sound—metal on stone. A voice from above, raspy and cruel:
+"Well, well. Still alive down there, are we? You're tougher than you look, Zagreus."
+
+A torch appears at the opening above. You see a face—one of the guards.
+He sneers down at you.""",
+            [
+                {"text": "Beg for mercy", "next": "beg_guard_mercy"},
+                {"text": "Offer him money to help", "next": "bribe_guard_above"},
+                {"text": "Curse him and his family", "next": "curse_guard"},
+                {"text": "Stay silent and stare", "next": "silent_stare"},
+                {"text": "Custom action", "next": "custom_guard_above"}
+            ]
+        )
+        
+        self.nodes["beg_guard_mercy"] = StoryNode(
+            "beg_guard_mercy",
+            """You beg for your life. "Please! I don't deserve this! Pull me up!"
+
+The guard laughs. "Deserve? You murdered Lord Theron's daughter, or so they say.
+Whether you did or not doesn't matter. You made enemies of powerful people."
+
+He spits into the water. "But... I'm not without mercy. Catch!"
+
+He throws down a rope. But it's too short—it dangles three feet above your reach.
+He laughs harder. "Oops! My mistake!"
+
+The water is rising faster now.""",
+            [
+                {"text": "Jump for the rope", "next": "jump_for_rope"},
+                {"text": "Scream curses at him", "next": "curse_cruel_guard"},
+                {"text": "Ignore him and search for another way", "next": "search_exit_urgent"},
+                {"text": "Custom action", "next": "custom_rope_taunt"}
+            ]
+        )
+        
+        self.nodes["jump_for_rope"] = StoryNode(
+            "jump_for_rope",
+            """You jump with all your might, fingers grasping for the rope!
+You miss it by inches. You try again. And again.
+The guard watches, amused. "Dance, prisoner, dance!"
+
+On your fourth jump, your fingers brush the rope—and you grab it!
+You pull yourself up, hand over hand. The guard's eyes widen.
+"No! You weren't supposed to—" He tries to pull the rope back up.
+
+Too late. You're already climbing. He can't pull you and the rope up together.""",
+            [
+                {"text": "Climb faster before he cuts the rope", "next": "climb_rope_fast"},
+                {"text": "Try to swing to grab the ledge", "next": "swing_to_ledge"},
+                {"text": "Custom action", "next": "custom_rope_climb"}
+            ]
+        )
+        
+        self.nodes["climb_rope_fast"] = StoryNode(
+            "climb_rope_fast",
+            """You climb with desperate speed. The guard fumbles for his knife to cut the rope.
+You're almost there! He starts sawing at the rope—
+You lunge for the ledge! Your hands catch the stone edge just as the rope gives way.
+
+The guard stumbles back, shocked. You haul yourself up and over.
+You're in a guardroom—small, with a table, chairs, and weapon rack.
+The guard backs toward the weapon rack, reaching for a sword.""",
+            [
+                {"text": "Rush him before he gets the sword", "next": "rush_guard_guardroom"},
+                {"text": "Grab a weapon from the rack yourself", "next": "grab_weapon_rack"},
+                {"text": "Try to talk him down", "next": "talk_down_guard"},
+                {"text": "Run for the exit door", "next": "run_exit_guardroom"},
+                {"text": "Custom action", "next": "custom_guardroom"}
+            ]
+        )
+
+        # Add more missing nodes
+        self.nodes["back_to_water"] = StoryNode(
+            "back_to_water",
+            """You let go and drop back into the water with a splash.
+Better to be safe than fall from higher up.
+The water is even higher now—it's at your shoulders.
+You need to find another way out, quickly!""",
+            [
+                {"text": "Try climbing again more carefully", "next": "climb_wall_holds"},
+                {"text": "Search the water for items", "next": "search_cell_water"},
+                {"text": "Dive underwater to find a passage", "next": "dive_underwater"},
+                {"text": "Custom action", "next": "custom_back_water"}
+            ]
+        )
+        
+        self.nodes["swing_for_hold"] = StoryNode(
+            "swing_for_hold",
+            """You swing your body, trying to reach another hold.
+The momentum builds. You release at the peak of your swing—
+Your hand finds purchase! You've caught another hold!
+
+Breathing hard, you continue climbing. Each movement is agony, but you persist.
+Finally, you reach the top and pull yourself through a grate into a passage.""",
+            [
+                {"text": "Crawl forward into the passage", "next": "drainage_tunnel"},
+                {"text": "Rest briefly to recover", "next": "rest_after_climb"},
+                {"text": "Custom action", "next": "custom_climb_success"}
+            ]
+        )
+        
+        self.nodes["panic_thrash"] = StoryNode(
+            "panic_thrash",
+            """You panic completely, thrashing in the contaminated water.
+You swallow more of it. You can't think straight. You can't find which way is up.
+Your vision darkens. Your movements slow. The cold claims you.
+
+CAUSE OF DEATH: Panic-induced drowning in contaminated water
+SURVIVAL TIME: 4 minutes
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["induce_vomit"] = StoryNode(
+            "induce_vomit",
+            """You stick your fingers down your throat, forcing yourself to vomit.
+You retch violently, expelling the contaminated water.
+It might not be enough—you swallowed so much—but it's better than nothing.
+
+You feel weak and dizzy, but more clear-headed than before.
+The water is at your neck. You MUST move now!""",
+            [
+                {"text": "Search frantically for exit", "next": "find_drainage_grate"},
+                {"text": "Dive down for underwater passage", "next": "underwater_passage"},
+                {"text": "Custom action", "next": "custom_after_vomit"}
+            ]
+        )
+        
+        self.nodes["pull_grate"] = StoryNode(
+            "pull_grate",
+            """You grab the grate with both hands and pull with all your strength.
+The rusted metal groans. The lock holds. You pull harder—your wound tears open,
+blood mixing with the water. The grate doesn't budge.
+
+The water is at your mouth now. You have seconds left!""",
+            [
+                {"text": "Take final deep breath and dive for another way", "next": "dive_last_chance"},
+                {"text": "Keep pulling until you pass out", "next": "death_drowning"},
+                {"text": "Custom action", "next": "custom_final_moments"}
+            ]
+        )
+        
+        self.nodes["dive_last_chance"] = StoryNode(
+            "dive_last_chance",
+            """You take the deepest breath you can manage and dive under.
+Swimming down, down through the murky water. Your hands find the bottom.
+You feel along desperately. There—a hole! Water is draining through it!
+
+You squeeze through, scraping skin off your shoulders. The passage is tight.
+You can't turn around. You can only go forward. Your lungs burn.
+Then—blessed air! You surface in another chamber, coughing and gasping.""",
+            [
+                {"text": "Catch your breath and assess situation", "next": "assess_new_chamber"},
+                {"text": "Crawl out of water immediately", "next": "crawl_from_water"},
+                {"text": "Custom action", "next": "custom_new_chamber"}
+            ]
+        )
+        
+        self.nodes["pick_lock_grate"] = StoryNode(
+            "pick_lock_grate",
+            """You try to pick the lock with your fingers, feeling for the mechanism.
+It's too dark to see, and you're not a locksmith. The water rises to your lips.
+You're out of time. This isn't working!""",
+            [
+                {"text": "Give up and dive for another way", "next": "dive_last_chance"},
+                {"text": "Bash the lock with something", "next": "bash_lock_desperate"},
+                {"text": "Custom action", "next": "custom_lock_attempt"}
+            ]
+        )
+
+        # Add more combat and story nodes
+        self.nodes["rest_tunnel"] = StoryNode(
+            "rest_tunnel",
+            """You lean against the tunnel wall, catching your breath.
+Your body shivers uncontrollably from the cold. Your wound throbs.
+You need to keep moving or you'll go into shock, but a moment's rest helps.
+
+Rested slightly. Stamina recovered partially.""",
+            [
+                {"text": "Continue up the tunnel", "next": "drainage_tunnel"},
+                {"text": "Tear fabric to bandage wound", "next": "bandage_wound_tunnel"},
+                {"text": "Custom action", "next": "custom_rest_tunnel"}
+            ]
+        )
+        
+        self.nodes["check_wounds_tunnel"] = StoryNode(
+            "check_wounds_tunnel",
+            """You examine yourself. The wound on your side is deep—a puncture wound.
+It's not bleeding heavily, but it's dirty. In this filthy environment, infection
+is almost guaranteed unless you treat it. You have no medical supplies.
+
+You could:
+- Cauterize it with fire (painful but effective)
+- Rinse it with water (might help, might make it worse)
+- Leave it and hope for the best
+- Find clean cloth to bind it""",
+            [
+                {"text": "Continue without treatment—no time", "next": "drainage_tunnel"},
+                {"text": "Rinse with water from the tunnel", "next": "rinse_wound_water"},
+                {"text": "Tear cloth from clothes to bind it", "next": "bind_wound_cloth"},
+                {"text": "Custom action", "next": "custom_wound_treatment"}
+            ]
+        )
+
+        # More story paths and nodes
+        self.nodes["scratch_marks"] = StoryNode(
+            "scratch_marks",
+            """You follow the scratch marks carved into the walls. They're deep gouges—
+made by something with claws. Or fingernails worn to bloody stubs.
+The marks lead you down a twisting corridor. The blood trail from the other
+direction converges with this path ahead. Both paths meet at a junction.
+
+In the center of the junction stands an iron maiden—medieval torture device.
+Blood pools beneath it. The scratches on the floor lead TO it, not from it.""",
+            [
+                {"text": "Examine the iron maiden carefully", "next": "examine_iron_maiden"},
+                {"text": "Go around it and continue", "next": "past_iron_maiden"},
+                {"text": "Check if anyone is inside it", "next": "check_inside_maiden"},
+                {"text": "Go back and take the blood trail instead", "next": "blood_trail"},
+                {"text": "Custom action", "next": "custom_iron_maiden"}
+            ]
+        )
+        
+        self.nodes["tend_wound_torch"] = StoryNode(
+            "tend_wound_torch",
+            """You use the torch to examine your wound closely. It's bad—a deep puncture
+in your side. You tear a strip from your shirt and bind it tightly.
+The torch flame flickers. If you had something to sterilize it with...
+
+You notice a bottle of spirits half-empty on the floor—probably from the corpse.""",
+            [
+                {"text": "Use the spirits to clean the wound (painful)", "next": "sterilize_wound"},
+                {"text": "Just keep the bandage and continue", "next": "bandaged_continue"},
+                {"text": "Drink the spirits for the pain", "next": "drink_spirits"},
+                {"text": "Custom action", "next": "custom_wound_care"}
+            ]
+        )
+        
+        self.nodes["examine_walls_torch"] = StoryNode(
+            "examine_walls_torch",
+            """With the torch, you examine the walls closely. You see more now:
+- Names carved into the stone. Hundreds of them. All prisoners who died here.
+- Strange symbols that seem to writhe in the torchlight
+- A hidden alcove containing a small leather journal
+
+You open the journal. The last entry reads:
+"Day 47: The Harvester came again. It took Marcus. Only Elena and I remain.
+We found a map to the trophy room. The Overseer keeps the exit key there.
+But between here and there... gods help us."
+
+A map is sketched on the next page.""",
+            [
+                {"text": "Study the map carefully", "next": "study_map"},
+                {"text": "Take journal and move on", "next": "take_journal_move"},
+                {"text": "Read more entries", "next": "read_journal_more"},
+                {"text": "Custom action", "next": "custom_journal"}
+            ]
+        )
+        
+        self.nodes["scare_ghoul_fire"] = StoryNode(
+            "scare_ghoul_fire",
+            """You wave the torch aggressively at the ghoul, shouting.
+The creature recoils from the flame—ghouls fear fire.
+It hisses and backs away, but doesn't flee completely.
+It circles you, looking for an opening. You have the advantage for now.""",
+            [
+                {"text": "Press the attack with fire", "next": "fight_ghoul_torch"},
+                {"text": "Use the opportunity to run past", "next": "run_past_ghoul"},
+                {"text": "Back away while maintaining distance", "next": "backing_away_ghoul"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["run_from_ghoul"] = StoryNode(
+            "run_from_ghoul",
+            """You turn and run! The ghoul shrieks and gives chase!
+You sprint through the corridors, the sound of claws on stone behind you.
+You take a turn—another turn—you're lost now but still running.
+
+Ahead, you see three paths: stairs going down, a door, and a narrow crack.""",
+            [
+                {"text": "Take the stairs down", "next": "run_down_stairs"},
+                {"text": "Try the door", "next": "door_escape"},
+                {"text": "Squeeze through the crack", "next": "squeeze_crack"},
+                {"text": "Turn and fight—you're cornered", "next": "cornered_fight_ghoul"},
+                {"text": "Custom action", "next": "custom_chase"}
+            ]
+        )
+        
+        self.nodes["distract_ghoul"] = StoryNode(
+            "distract_ghoul",
+            """You throw... what? You have very little. You throw one of your copper coins!
+It clatters against the far wall. The ghoul's head snaps toward the sound.
+For a moment, it's distracted. You dart past it, holding your breath.
+
+You're past! But you hear it realize the trick. It's coming after you!""",
+            [
+                {"text": "Keep running", "next": "run_from_ghoul"},
+                {"text": "Hide quickly", "next": "hide_from_ghoul"},
+                {"text": "Turn and fight now that you have distance", "next": "fight_ghoul_distance"},
+                {"text": "Custom action", "next": "custom_post_distract"}
+            ]
+        )
+        
+        self.nodes["ghoul_chain_bash"] = StoryNode(
+            "ghoul_chain_bash",
+            """You swing the heavy chain at the ghoul! It connects with a sickening crack!
+The creature staggers but recovers quickly. It lunges at you with claws extended.
+You barely dodge—it catches your arm, tearing fabric and skin.""",
+            [
+                {"text": "Swing the chain again", "next": "chain_second_strike"},
+                {"text": "Drop chain and grab the torch", "next": "switch_to_torch"},
+                {"text": "Strangle it with the chain", "next": "strangle_ghoul"},
+                {"text": "Retreat and reassess", "next": "retreat_from_ghoul"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["ghoul_dodge_strike"] = StoryNode(
+            "ghoul_dodge_strike",
+            """You dodge to the side as the ghoul lunges! It misses by inches!
+You strike from the side with the torch. The flame catches its dry flesh!
+The ghoul shrieks and rolls, trying to put out the fire.
+You have a critical moment—press the advantage or escape!""",
+            [
+                {"text": "Finish it while it's vulnerable", "next": "finish_burning_ghoul"},
+                {"text": "Run while it's distracted", "next": "escape_burning_ghoul"},
+                {"text": "Set it fully ablaze with the torch", "next": "ghoul_eyes_torch"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["ghoul_kick"] = StoryNode(
+            "ghoul_kick",
+            """You kick out hard! Your foot connects with the ghoul's knee.
+You hear a crack—you've broken something! The creature drops to one knee,
+snarling. But now it's even more dangerous—a wounded animal fighting for survival.
+It swipes at your legs with its claws!""",
+            [
+                {"text": "Jump back and strike with torch", "next": "torch_strike_wounded"},
+                {"text": "Stomp on its head", "next": "stomp_ghoul"},
+                {"text": "Run past it while it's down", "next": "run_past_wounded_ghoul"},
+                {"text": "Custom action", "next": "combat_ghoul"}
+            ]
+        )
+        
+        self.nodes["resist_cannibalism"] = StoryNode(
+            "resist_cannibalism",
+            """You turn away from the corpse. You're better than that.
+Even starving, even in hell, you'll remain human.
+Your humanity is all you have left. You won't surrender it.
+
+But gods, you're so hungry...""",
+            [
+                {"text": "Search the area for other food", "next": "search_for_food"},
+                {"text": "Move on despite the hunger", "next": "past_ghoul_quick"},
+                {"text": "Search the victim's body for supplies instead", "next": "search_victim_body"},
+                {"text": "Custom action", "next": "custom_resist_cannibalism"}
+            ]
+        )
+        
+        self.nodes["take_meat_later"] = StoryNode(
+            "take_meat_later",
+            """You carve some flesh from the corpse and wrap it in fabric.
+You don't eat it now... but you have it. Just in case.
+The act weighs on you. Your sanity decreases slightly.
+You can feel yourself changing. The dungeon is getting into your head.""",
+            [
+                {"text": "Continue with the meat hidden away", "next": "past_ghoul_with_meat"},
+                {"text": "Throw it away—this was wrong", "next": "throw_meat_away"},
+                {"text": "Search the victim for other items", "next": "search_victim_body"},
+                {"text": "Custom action", "next": "custom_meat_decision"}
+            ]
+        )
+        
+        self.nodes["deeper_insane"] = StoryNode(
+            "deeper_insane",
+            """You continue deeper. But you're different now. The whispers make sense.
+The darkness is comforting. You begin to see things that aren't there.
+Or are they? Reality becomes fluid.
+
+You find yourself in a chamber filled with bones. So many bones.
+A figure sits in the center—hooded, waiting. It gestures for you to approach.""",
+            [
+                {"text": "Approach the hooded figure", "next": "approach_dark_figure"},
+                {"text": "Attack the figure", "next": "attack_dark_figure"},
+                {"text": "Run away screaming", "next": "run_insane"},
+                {"text": "Sit among the bones and wait", "next": "wait_in_bones"},
+                {"text": "Custom action", "next": "custom_insane_chamber"}
+            ]
+        )
+        
+        self.nodes["fight_insanity"] = StoryNode(
+            "fight_insanity",
+            """You fight the whispers in your head. You recite your name: Zagreus.
+You remember who you were before this. You hold onto your memories like a lifeline.
+The whispers fade... slightly. Your sanity stabilizes, but you're forever changed.
+
+You can continue now, but the temptation is always there, whispering.""",
+            [
+                {"text": "Continue forward with renewed resolve", "next": "past_ghoul_quick"},
+                {"text": "Search the area thoroughly", "next": "search_victim_body"},
+                {"text": "Take a moment to center yourself", "next": "meditate_sanity"},
+                {"text": "Custom action", "next": "custom_fight_madness"}
+            ]
+        )
+        
+        self.nodes["use_herbs_wound"] = StoryNode(
+            "use_herbs_wound",
+            """You examine the herbs. Some you recognize—yarrow for bleeding, sage for
+infection. You make a crude poultice and apply it to your wound.
+It stings terribly, but the bleeding slows. This might save you from infection.
+
+Health improved slightly. Wound stabilized.""",
+            [
+                {"text": "Continue onward", "next": "equip_dagger_continue"},
+                {"text": "Rest a moment while the herbs work", "next": "rest_with_herbs"},
+                {"text": "Take remaining herbs for later", "next": "herbs_for_later"},
+                {"text": "Custom action", "next": "custom_herbs"}
+            ]
+        )
+        
+        self.nodes["drink_waterskin"] = StoryNode(
+            "drink_waterskin",
+            """You drink from the waterskin. The water is stale but clean.
+It helps. You feel less weak. Dehydration was affecting you more than you realized.
+
+Stamina restored partially.""",
+            [
+                {"text": "Save the rest and continue", "next": "equip_dagger_continue"},
+                {"text": "Drink it all now", "next": "drink_all_water"},
+                {"text": "Use some to clean your wound", "next": "water_clean_wound"},
+                {"text": "Custom action", "next": "custom_waterskin"}
+            ]
+        )
+        
+        self.nodes["read_note_carefully"] = StoryNode(
+            "read_note_carefully",
+            """You study the note more carefully. There's more written in tiny script:
+"The Overseer experiments on prisoners. Seeks immortality through harvesting.
+The creature—the Harvester—is his failed first attempt. It hunts for parts
+to complete itself. The trophy room contains his research and the master key.
+
+Beware: The Harvester can sense fear. Remain calm or it will find you faster.
+It cannot tolerate bright light—fire is your best defense."
+
+This is valuable information.""",
+            [
+                {"text": "Memorize this and continue", "next": "equip_dagger_continue"},
+                {"text": "Keep the note for reference", "next": "keep_note"},
+                {"text": "Custom action", "next": "custom_note"}
+            ]
+        )
+        
+        self.nodes["sewer_passage"] = StoryNode(
+            "sewer_passage",
+            """You enter the narrow, foul-smelling passage. The walls are slick with moisture
+and filth. Rats scatter as you approach. The smell is overwhelming.
+The passage slopes downward. You hear water flowing ahead—a sewer stream.
+
+The passage is so narrow you have to crawl in places.""",
+            [
+                {"text": "Continue through the sewers", "next": "sewer_passage_after_guard"},
+                {"text": "Turn back—this is too dangerous", "next": "wide_hallway"},
+                {"text": "Move slowly and carefully", "next": "careful_sewer"},
+                {"text": "Custom action", "next": "custom_sewer_entrance"}
+            ]
+        )
+        
+        self.nodes["stairs_after_guard"] = StoryNode(
+            "stairs_after_guard",
+            """You thank the guard and descend the stairs. They spiral down into darkness.
+The air grows colder. You count 73 steps before reaching a landing.
+
+Before you is a massive iron door with strange symbols. This must be the lower
+levels the guard mentioned. Very few who enter here return.""",
+            [
+                {"text": "Examine the door", "next": "descend_stairs"},
+                {"text": "Continue down further", "next": "deeper_descent"},
+                {"text": "Go back up and try the sewers instead", "next": "sewer_passage"},
+                {"text": "Custom action", "next": "custom_lower_stairs"}
+            ]
+        )
+        
+        self.nodes["betray_guard"] = StoryNode(
+            "betray_guard",
+            """As the guard turns to leave, you strike! You stab him in the back with your dagger!
+He gasps, eyes wide with shock and betrayal. "I... helped you..."
+He falls to his knees, then collapses. He's dead.
+
+You've killed someone who showed you mercy. Your sanity decreases significantly.
+The darkness in your heart grows. But you now have his armor and spear.""",
+            [
+                {"text": "Take his equipment and move on", "next": "loot_guard_body"},
+                {"text": "Feel remorse and say a prayer", "next": "remorse_guard"},
+                {"text": "Hide the body quickly", "next": "hide_guard_body"},
+                {"text": "Run before anyone sees you", "next": "flee_murder_scene"},
+                {"text": "Custom action", "next": "custom_betrayal"}
+            ]
+        )
+        
+        self.nodes["guard_impatient"] = StoryNode(
+            "guard_impatient",
+            """The guard's face hardens. "Enough questions! You think I have all day?
+Someone might come. Go NOW before I change my mind!"
+
+He points his spear toward the sewer passage. His patience is exhausted.""",
+            [
+                {"text": "Thank him and go to sewers", "next": "sewer_passage_after_guard"},
+                {"text": "Thank him and take the stairs", "next": "stairs_after_guard"},
+                {"text": "Attack him while he's gesturing", "next": "surprise_attack_guard"},
+                {"text": "Custom action", "next": "custom_guard_patience"}
+            ]
+        )
+
+        # Add nodes for alternate paths
+        self.nodes["examine_symbols"] = StoryNode(
+            "examine_symbols",
+            """You study the strange symbols carved into the stone walls.
+They're ancient—older than the dungeon itself. The style is familiar...
+These are warning glyphs. You can make out fragments of meaning:
+
+"...beneath... harvester of flesh... door sealed... seven keys..."
+
+The symbols seem to glow faintly with that same phosphorescent light.
+There's more here, but it would take time to decipher fully.""",
+            [
+                {"text": "Continue examining symbols closely", "next": "decipher_symbols"},
+                {"text": "Move on—no time for archaeology", "next": "torch_corridor"},
+                {"text": "Trace the symbols with your finger", "next": "touch_symbols"},
+                {"text": "Custom action", "next": "custom_symbols"}
+            ]
+        )
+        
+        self.nodes["stealth_corridor"] = StoryNode(
+            "stealth_corridor",
+            """You move quietly, keeping to the shadows. Your bare feet make no sound
+on the cold stone. You reach a corner and peek around it carefully.
+
+Ahead, you see the source of light—a torch in a sconce. Next to it, a guard
+sits on a stool, half-asleep. Beyond him, the corridor continues into darkness.
+To your left, a narrow side passage slopes downward.""",
+            [
+                {"text": "Sneak past the sleeping guard", "next": "sneak_past_guard"},
+                {"text": "Take the side passage", "next": "side_passage_down"},
+                {"text": "Wait and observe longer", "next": "observe_guard"},
+                {"text": "Custom action", "next": "custom_stealth"}
+            ]
+        )
+        
+        self.nodes["call_out_corridor"] = StoryNode(
+            "call_out_corridor",
+            """You call out: "Hello? Is anyone there?"
+
+Your voice echoes through the stone corridors. Silence follows.
+Then—footsteps. Running. Multiple people. Getting closer fast.
+
+You've alerted the guards!""",
+            [
+                {"text": "Run back into the drainage tunnel", "next": "run_back_tunnel"},
+                {"text": "Stand your ground and face them", "next": "face_guards"},
+                {"text": "Hide in the shadows quickly", "next": "quick_hide"},
+                {"text": "Custom action", "next": "custom_guards_coming"}
+            ]
+        )
+
+        # Expand combat paths
+        self.nodes["dark_passage_left"] = StoryNode(
+            "dark_passage_left",
+            """You venture left into the dark passage without taking the torch.
+The darkness is absolute. You can't see your hand in front of your face.
+You feel your way forward, hands on the walls.
+
+Something skitters across your foot. Rats, probably. Or something worse.
+The passage turns. You follow it. Then you hear it—breathing. Heavy. Close.
+Something is RIGHT IN FRONT OF YOU in the darkness.""",
+            [
+                {"text": "Back away slowly and quietly", "next": "back_away_creature"},
+                {"text": "Strike out at whatever it is", "next": "strike_blind"},
+                {"text": "Stay perfectly still", "next": "freeze_darkness"},
+                {"text": "Run back the way you came", "next": "run_from_darkness"},
+                {"text": "Custom action", "next": "custom_dark_creature"}
+            ]
+        )
+        
+        self.nodes["chewing_sound_right"] = StoryNode(
+            "chewing_sound_right",
+            """You go right, toward the chewing sound, without the torch.
+In the darkness, you almost trip over something—the corpse of a prisoner.
+Fresh. Still warm. Something is feeding on it RIGHT NOW.
+
+You hear the chewing stop. Whatever it is knows you're there.
+A wet growl emanates from the darkness. Claws scrape on stone.
+It's coming for you!""",
+            [
+                {"text": "Run back to the torch", "next": "run_to_torch"},
+                {"text": "Fight in the darkness", "next": "fight_blind"},
+                {"text": "Play dead on the ground", "next": "play_dead"},
+                {"text": "Custom action", "next": "custom_fight_dark"}
+            ]
+        )
+        
+        self.nodes["investigate_chewing"] = StoryNode(
+            "investigate_chewing",
+            """You approach the chewing sound cautiously, still near the lit area.
+You can see now—it's a GHOUL, crouched over a fresh corpse. Its pale skin
+stretches over inhuman bones. It hasn't noticed you yet, too focused on its meal.
+
+You have the advantage of surprise.""",
+            [
+                {"text": "Take the torch and attack while it's distracted", "next": "torch_sneak_attack"},
+                {"text": "Try to sneak past while it feeds", "next": "sneak_past_ghoul"},
+                {"text": "Go back and take the other path", "next": "dark_passage_left"},
+                {"text": "Throw something to distract it", "next": "distract_feeding_ghoul"},
+                {"text": "Custom action", "next": "custom_ghoul_surprise"}
+            ]
+        )
+
+        # More death scenarios
+        self.nodes["death_combat_generic"] = StoryNode(
+            "death_combat_generic",
+            """The creature overwhelms you. Your desperate attacks are not enough.
+Claws tear into your flesh. Teeth find your throat. The pain is brief.
+Darkness takes you.
+
+CAUSE OF DEATH: Killed in combat
+SURVIVAL TIME: varies
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+        
+        self.nodes["death_combat"] = StoryNode(
+            "death_combat",
+            """You fight valiantly, but you're wounded, exhausted, and unarmed.
+The battle is brief and brutal. Your broken body joins countless others
+who thought they could fight their way out.
+
+CAUSE OF DEATH: Combat wounds
+SURVIVAL TIME: varies
+
+The dungeon claims another victim.""",
+            [{"text": "Start over", "next": "restart"}]
+        )
+
+        # Add custom action handlers
+        self.nodes["custom_feel_walls"] = "CUSTOM_AI"
+        self.nodes["custom_climb"] = "CUSTOM_AI"
+        self.nodes["custom_after_climb"] = "CUSTOM_AI"
+        self.nodes["custom_bundle"] = "CUSTOM_AI"
+        self.nodes["custom_hidden_items"] = "CUSTOM_AI"
+        self.nodes["custom_after_potion"] = "CUSTOM_AI"
+        self.nodes["custom_panic"] = "CUSTOM_AI"
+        self.nodes["custom_grate_panic"] = "CUSTOM_AI"
+        self.nodes["custom_underwater"] = "CUSTOM_AI"
+        self.nodes["custom_dark_chamber"] = "CUSTOM_AI"
+        self.nodes["custom_guard_above"] = "CUSTOM_AI"
+        self.nodes["custom_rope_taunt"] = "CUSTOM_AI"
+        self.nodes["custom_rope_climb"] = "CUSTOM_AI"
+        self.nodes["custom_guardroom"] = "CUSTOM_AI"
+        self.nodes["custom_back_water"] = "CUSTOM_AI"
+        self.nodes["custom_climb_success"] = "CUSTOM_AI"
+        self.nodes["custom_after_vomit"] = "CUSTOM_AI"
+        self.nodes["custom_final_moments"] = "CUSTOM_AI"
+        self.nodes["custom_new_chamber"] = "CUSTOM_AI"
+        self.nodes["custom_lock_attempt"] = "CUSTOM_AI"
+        self.nodes["custom_rest_tunnel"] = "CUSTOM_AI"
+        self.nodes["custom_wound_treatment"] = "CUSTOM_AI"
+        self.nodes["custom_symbols"] = "CUSTOM_AI"
+        self.nodes["custom_stealth"] = "CUSTOM_AI"
+        self.nodes["custom_guards_coming"] = "CUSTOM_AI"
+        self.nodes["custom_dark_creature"] = "CUSTOM_AI"
+        self.nodes["custom_fight_dark"] = "CUSTOM_AI"
+        self.nodes["custom_ghoul_surprise"] = "CUSTOM_AI"
+        
         self.nodes["restart"] = "RESTART"
     
     def show_status(self):
@@ -853,7 +3095,13 @@ The dungeon claims another victim.""",
         print("STATUS:")
         print(f"Health: {self.state.health}/{self.state.max_health} | Stamina: {self.state.stamina}/{self.state.max_stamina}")
         print(f"Hunger: {self.state.hunger}/100 | Wetness: {self.state.wetness}/100 | Temp: {self.state.temperature}/100")
-        print(f"Sanity: {self.state.sanity}/100")
+        print(f"Sanity: {self.state.sanity}/100 | Fear: {self.state.fear}/100")
+        
+        # Active status effects
+        active_effects = [name for name, turns in self.state.status_effects.items() if turns > 0]
+        if active_effects:
+            effects_str = ", ".join([f"{eff}({self.state.status_effects[eff]})" for eff in active_effects])
+            print(f"Status Effects: {effects_str}")
         
         # Body status
         injuries = []
@@ -866,8 +3114,17 @@ The dungeon claims another victim.""",
         if injuries:
             print(f"Injuries: {', '.join(injuries)}")
         
-        # Equipment
-        equipped_items = [f"{slot}: {item}" for slot, item in self.state.equipped.items() if item]
+        # Equipment with durability tracking
+        equipped_items = []
+        for slot, item in self.state.equipped.items():
+            if item:
+                # Only show durability for items that actually degrade
+                if slot in ["weapon", "armor", "light"]:
+                    durability = self.state.equipment_durability.get(slot, 100)
+                    equipped_items.append(f"{slot}: {item} ({durability}%)")
+                else:
+                    equipped_items.append(f"{slot}: {item}")
+        
         if equipped_items:
             print(f"Equipped: {', '.join(equipped_items)}")
         else:
@@ -875,7 +3132,10 @@ The dungeon claims another victim.""",
         
         # Inventory
         if self.state.inventory:
-            print(f"Inventory: {', '.join(self.state.inventory)}")
+            inv_str = ', '.join(self.state.inventory[:5])
+            if len(self.state.inventory) > 5:
+                inv_str += f" (+{len(self.state.inventory) - 5} more)"
+            print(f"Inventory ({len(self.state.inventory)}/{self.state.max_inventory}): {inv_str}")
         else:
             print("Inventory: Empty")
         
@@ -955,23 +3215,83 @@ The dungeon claims another victim.""",
         self.state.visited_nodes.add(node_id)
         self.state.node_history.append(node_id)  # Track order
         
+        # Process status effects
+        for effect, turns in list(self.state.status_effects.items()):
+            if turns > 0:
+                # Apply ongoing damage/effects BEFORE decrementing
+                if effect == "bleeding":
+                    self.state.health -= STATUS_DAMAGE_BLEEDING
+                    print(f"[Bleeding: -{STATUS_DAMAGE_BLEEDING} health]")
+                elif effect == "poisoned":
+                    self.state.health -= STATUS_DAMAGE_POISONED
+                    self.state.stamina -= STAMINA_DRAIN_POISONED
+                    print(f"[Poisoned: -{STATUS_DAMAGE_POISONED} health, -{STAMINA_DRAIN_POISONED} stamina]")
+                elif effect == "burning":
+                    self.state.health -= STATUS_DAMAGE_BURNING
+                    print(f"[Burning: -{STATUS_DAMAGE_BURNING} health]")
+                elif effect == "infected":
+                    self.state.health -= STATUS_DAMAGE_INFECTED
+                    self.state.max_health -= MAX_HEALTH_LOSS_INFECTED
+                    print(f"[Infected: -{STATUS_DAMAGE_INFECTED} health, max health reduced]")
+                
+                # Now decrement the turn counter
+                self.state.status_effects[effect] = turns - 1
+        
         # Hunger increases over time
         if self.state.turn_count % 5 == 0:
             self.state.hunger += 5
             if self.state.hunger >= 100:
                 return "death_starvation"
         
-        # Wetness decreases slowly
-        if self.state.wetness > 0:
-            self.state.wetness -= 2
+        # Wetness decreases slowly if not in water
+        if self.state.wetness > 0 and "water" not in node_id.lower():
+            self.state.wetness -= 3
+        
+        # Temperature effects
+        if self.state.wetness > 60 and self.state.temperature < 50:
+            self.state.temperature -= 2
+            if self.state.temperature <= 20:
+                self.state.health -= 5
+                print("[Hypothermia: -{5} health]")
+                if self.state.health <= 0:
+                    return "death_hypothermia"
+        
+        # Equipment durability - only track weapon, armor, light
+        # (accessories and offhand items don't degrade)
+        if self.state.turn_count % 8 == 0:
+            for slot in ["weapon", "armor", "light"]:
+                if self.state.equipped[slot] and self.state.equipment_durability.get(slot, 0) > 0:
+                    self.state.equipment_durability[slot] -= 5
+                    if self.state.equipment_durability[slot] <= 0:
+                        print(f"[Your {slot} breaks from wear!]")
+                        self.state.equipped[slot] = None
+                        self.state.equipment_durability[slot] = 0
+        
+        # Stamina recovery when not in combat
+        if "combat" not in node_id.lower() and "fight" not in node_id.lower():
+            self.state.stamina = min(self.state.max_stamina, self.state.stamina + 5)
+        
+        # Fear affects Harvester detection
+        if self.state.fear > 75 and random.randint(1, 100) > 90:
+            print("[You sense the Harvester is getting closer...]")
+            self.state.fear += 5
+        
+        # Sanity effects
+        if self.state.sanity < 30:
+            if random.randint(1, 100) > 70:
+                print("[Hallucination: The walls seem to breathe...]")
         
         # Health degradation from untreated wounds
         if self.state.health < self.state.max_health and self.state.turn_count % 10 == 0:
-            if random.randint(1, 100) > 70:
+            if random.randint(1, 100) > 70 and self.state.status_effects["infected"] == 0:
                 self.state.health -= 5
                 print("[Your wound worsens...]")
                 if self.state.health <= 0:
                     return "death_infection"
+        
+        # Death from accumulated damage
+        if self.state.health <= 0:
+            return "death_wounds"
         
         return None
     
